@@ -1,0 +1,10 @@
+git fetch origin master 拉取文件，不改变本地文件
+git checkout origin/master 查看修改
+git checkout master 切换换本地
+git merge origin/master 远程的master合并到本地的master
+
+
+pull=fetch+merge
+
+git fetch [远程库地址别名] [远程分支名]
+git merge [远程库地址别名/远程名分支]

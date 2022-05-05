@@ -1,0 +1,10 @@
+怎么把本地的代码上传到gihub
+准备工作：本地库初始化
+	+git config user.name/email
+	+github账号并创建仓库，有网址：https://github.com/liang-jingxuan/-More-effective-cpp-.git
+	+github账户绑定了SSH
+开始
+1.在本地仓库空白处右键"Git Bash here"
+2.git add . 把修改的内容添加。此时可以git status查看修改情况，红色的是有修改
+3.git commit -a 输入后进入vin，按i进行编辑。编辑完后退出即提交了修改（提交到本地仓库）。再次git status会发现什么都没有了，因为都提交了
+4.git push origin master会把提交的内容上传到github
