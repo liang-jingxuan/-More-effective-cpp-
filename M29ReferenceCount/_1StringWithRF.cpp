@@ -61,16 +61,17 @@ int main(){
     cout<<"Obj s1 has " << s1.ref_count() << " referecens" << endl;//理论上s1和s3引用数相同,都是2。实际：2
     RCString* p=&s2;
     (*p)[1] = 'T';//不受欢迎的修改
+    cout<< s2 <<" has " << s2.ref_count() << " referecens" << endl;//理论:1,实际:1 .字符串:sTring1
     char* p2=&s2[3];
     *p2='I';//不受欢迎的修改
-    cout<<"s2="<< s2 <<". Ptr to s2 has " << p->ref_count() << " referecens" << endl;//理论:2。实际：1  为什么?
-    //这里形成了这样一个数据结构s2->refCout->"String1"<-p,p跳过了refCount,
-    //引用指的是具有名字的对象
+    cout<< s2 <<" has " << s2.ref_count() << " referecens" << endl;//理论:1,实际:1 .字符串:sTrIng1
+    cout<<"s2="<< s2 <<". Ptr to s2 has " << p->ref_count() << " referecens" << endl;//理论:1。实际：1
     s2=s1;
     cout<<"Obj s2 has " << s2.ref_count() << " referecens" << endl;//理论:3。实际：3
+                                                        //,因为s1可以共享,共享前有s1,s3两个引用,共享有s1~s3
     //此时s1,s2和s3都指向同一个字符串
-    s1[2]='q';//结果:srqing1
+    s1[2]='q';//结果:srqing1,s1修改了结果,s1被分离,s1有1个ref,s2和s3共用一个
     cout<< s1 <<" has " << s1.ref_count() << " referecens" << endl;//理论:1,实际:1.字符串:srqing1
     cout<< s2 <<" has " << s2.ref_count() << " referecens" << endl;//理论:2,实际:2.字符串:string1
-
+    cout<< s3 <<" has " << s3.ref_count() << " referecens" << endl;//理论:2,实际:2
 }
