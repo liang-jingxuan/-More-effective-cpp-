@@ -10,12 +10,17 @@ class RCstr{
             //构造value的时候回自动解决引用计数问题,因为value是一个引用计数智能指针
             cout<<"RCstr:Constructor called"<<endl;
         }
-
-        RCstr(const RCstr& rhs):value(*(new RCPtr<strValue>(rhs.value))){
+        //使用系统生成的拷贝构造函数就足够了,如果删去这段代码可以更好地观察到拷贝构造的
+        //过程:智能指针的拷贝构造 RCPtr(const RCPtr &rhs) ->  系统生成的对象拷贝构造
+        //系统自动生成的拷贝构造函数大概是这样的,对每个数据成员一一赋予右边的值
+        //RCstr(const RCstr& rhs){
             //构造value的时候回自动解决引用计数问题,因为value是一个引用计数智能指针
-            cout<<"RCstr:Copy constructor called"<<endl;
-        }
-
+        //    value = rhs.value;//调用RCPtr<strValue>::operator =
+        //    cout<<"RCstr:Copy constructor called"<<endl;
+        //}
+        //赋值构造函数同理
+        //使用了系统自动生成的赋值构造函数
+        
         const char& operator[](int idx) const{
             return value->data[idx];
         }

@@ -15,9 +15,9 @@ class RCPtr
             cout<<"RCPtr: Constructor called!"<<endl;
             init();
         }
-        
+
         RCPtr(const RCPtr &rhs):realPtr(rhs.realPtr){
-            cout<<"RCPtr: Copy constructor called!"<<endl;
+            cout<<"RCPtr(const RCPtr &rhs): Copy constructor called!"<<endl;
             init();
         }
 
@@ -27,6 +27,7 @@ class RCPtr
         }
 
         RCPtr& operator=(const RCPtr& rhs){
+            cout<<"RCPtr& operator=(const RCPtr& rhs) called!"<<endl;
             if(realPtr==rhs.realPtr) return *this;
             if(realPtr) {
                 //有对象,不为0
