@@ -19,6 +19,7 @@ class RFcount{
         
         void addReference(){++RefCnt;}
         void rmReference(){
+            cout<<"one Reference is removed"<<endl;
             --RefCnt;
             if(RefCnt==0)
                 delete this;
