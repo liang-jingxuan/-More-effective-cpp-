@@ -25,3 +25,15 @@ _3AutoRFCnt.cpp
 把数据成员一一赋值为等号右边的对象的数据成员,这样就转移到了智能指针的operator=(),在里面完成了深拷贝,引用计数等。
     赋值其实就是调用了智能指针的operator=()。
 
+_4RFComplex.cpp
+    对于已有的没有引用计数的类,想为该类增加引用计数功能,但碍于在原来的类进行修改的工作量大或可能引入混乱的逻辑,因此
+这里想办法在不改变原本的类一点代码的基础上加入引用计数功能.
+    在这个文件里,Complex是一个简单的复数类,想在这个类加入引用计数.
+    
+    第一步:有一个不具有引用计数的类(_4RFComplex.cpp的Complex类),有一个引用计数类(RefCount.h)
+    第二步:写一个智能指针类(RCIPtr),这个智能指针类用一个结构体(如CountHolder)包装实际指针,并public继承引用计数类(RFcount)
+在这个RCIPtr中完成引用计数功能,必须调用rmReference,addReference等
+    第三步:写一个具有引用计数的类(RCComplex),数据成员是第二步中的智能指针RCIPtr<Complex>,这个类把原本不具有引用计数的类Complex
+的函数重新写一遍,但是有一个细节:在实现的时候都是通过智能指针RCIPtr调用的.
+    第四步:开发的时候把所有Complex替换成RCComplex即可.
+    

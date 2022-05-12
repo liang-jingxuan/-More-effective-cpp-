@@ -46,10 +46,12 @@ class RCPtr
         T* operator->() const{
             return realPtr;
         }
+        
     private:
         T *realPtr;
         void init();
 };
+
 template<class T>
 void RCPtr<T>::init(){//检查是否可共享,不可共享则深拷贝,可共享则不拷贝
     if(realPtr==0) return;
