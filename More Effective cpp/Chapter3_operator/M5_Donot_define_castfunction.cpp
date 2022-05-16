@@ -32,24 +32,25 @@ class Array{
     public:
         class ArraySize{ // 这个类是新的
         public:
-            ArraySize(int numElements) : theSize(numElements) {}
-            int size() const { return theSize; }
-
+            ArraySize(int numElements) : theSize(numElements) {
+                cout<<"ArraySize"<<endl;
+                //fun1();//错误,Array不对ArraySize开放
+            }
+            int size() const { cout<<"ArraySize:calling size"<<endl;return theSize; }
+            
         private:
             int theSize;
         };
         Array(int lowBound, int highBound);
-        Array(ArraySize _size):size(_size){} // 注意新的声明
-        int size()const{return theSize;}
-    private:
-        ArraySize size;
+        Array(ArraySize _size){
+            cout<<"Array"<<endl;
+            cout<<_size.size();//就算包含了ArraySize也要通过ArraySize对象进行调用
+        }
+        void fun1(){cout<<"fun1"<<endl;}
 };
 
 bool operator==( const Array<int>& lhs,
-                const Array<int>& rhs){
-    if (lhs.size()==rhs.size())
-        cout<<"equal size!";     
-}
+                const Array<int>& rhs);
 int main(){
     //使用explicit防止隐式转换
         Rational r(1,2);
@@ -59,7 +60,7 @@ int main(){
         cout<<"r="<<r<<endl;//如果没有定义<<则报错
         //cout<<"r2="<<r2<<endl;
         cout<<r.asDouble()<<endl;
-        return 0;
+        
         //但explicit无法 预防 a==static_cast<Array<int> >(b[i])这样逻辑不合理的隐式转换
         //即如果我们设计的类和数组的表现相似的时候 a==b[i]可能会通过编译
         //因为会把b[i]作为参数构造出一个和a相同的对象再调用这个类的==
@@ -67,7 +68,9 @@ int main(){
     //如果我们设计的类和数组的表现相似的时候
     //可以使用一个类Arraysize来控制Array的大小
 
-    Array<int> a(10);
+    Array<int> a(10);   //先构造ArraySize再构造Array 即包含关系的时候先构造包含的类,再构造自己；被包含的类 对 类开发者开放,但不开放给用户
+    //a.size();//错误!类 "Array<int>" 没有成员 "size",但是Array里可以调用
+                        
     Array<int> b(10);
     for (int i = 0; i < 10; ++i);
     //if (a == b[i]) // 假设这里打错了,没发现: "a" 应该是 "a[i]";
