@@ -2,29 +2,8 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: g++.exe 生成活动文件",
-            "command": "D:\\mingw\\MinGW\\bin\\g++.exe",
-            "args": [
-                "-fdiagnostics-color=always",
-                "-g",
-                "${file}",
-                "-o",
-                "C:\\Users\\XXUAN\\Desktop\\cppstudy\\M31MultiObjVirtualFunc",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
-            ],
-            "options": {
-                "cwd": "${fileDirname}"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": "build",
-            "detail": "调试器生成的任务。"
-        },
-        {
-            "type": "cppbuild",
-            "label": "C/C++: g++.exe 生成活动文件",
-            "command": "F:\\mingw\\MinGW\\bin\\g++.exe",
+            "label": "C/C++: gcc.exe 生成活动文件",
+            "command": "D:/mingw/MinGW/bin/gcc.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
@@ -33,7 +12,7 @@
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "D:/mingw/MinGW/bin"
             },
             "problemMatcher": [
                 "$gcc"
