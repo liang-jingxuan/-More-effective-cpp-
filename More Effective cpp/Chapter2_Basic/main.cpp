@@ -34,12 +34,16 @@ void Pointer_Vs_Reference(){
 }
 // 第二节：类型转换
 class A{
-virtual ~A()=0;
+    public:
+        virtual ~A()=0;
 };
 A::~A(){}
+
 class B:
 public A{
-
+    public:
+        B(){}
+        ~B(){}
 };
 
 void funA(B*){//接受一个非const对象指针
@@ -85,11 +89,13 @@ void casts(){
         funA(dynamic_cast<B*>(*pA));
         funA(dynamic_cast<B&>(*pA));
         funA(dynamic_cast<B&>(pA));
-        //接受引用的时候:转为引用
+        //接受引用的时候:从对象转为引用
         funA2(dynamic_cast<B*>(pA));
         funA2(dynamic_cast<B*>(*pA));
         funA2(dynamic_cast<B&>(*pA));//OK
         funA2(dynamic_cast<B&>(pA));
+
+        funA2(*pA);//不能传一个临时对象到非const引用
 }
 
 //  第四节:避免无用的缺省构造函数（指没有参数的构造函数）
