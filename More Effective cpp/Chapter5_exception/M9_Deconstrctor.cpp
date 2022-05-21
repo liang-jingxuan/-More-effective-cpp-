@@ -33,6 +33,7 @@ void fun1(){
     cout<<"In fun1(): Throw an exception here!"<<endl;
     throw A();//主动:抛出一个A类异常
     
+    //下面的语句不被执行,退出fun1离开生存空间也没调用析构函数
     pA->doThis();//没有输出"HAHA"
     delete pA;  //没有输出"Deconstructor of class A called!",说明被有执行
                 //因此内存泄露
@@ -54,8 +55,8 @@ int main(){
     
     try{
         fun1();//主动抛出已知类型的异常
-        //不管是fun1里的主动抛出还是被动抛出都会跳过抛出异常的语句下面的语句
-        //从而导致内存泄露!!!
+        //1.抛出异常的位置以下的程序不会被执行,所以自己写的delete没用
+        //2.即使离开生存空间,即跳出了fun1,析构函数也没有被调用.
     }
     catch(A&){
         cout<<"An exception with type A is catched!"<<endl;
