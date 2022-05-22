@@ -72,17 +72,17 @@ ostream& operator<<(ostream& s,const UPInt& data){
 const UPInt operator+(const UPInt& lhs,
                         const UPInt& rhs){
     //调用这个的时候我们并不想改变符号两边的值 c=a+b,我们并不希望改变a和b,所以返回另一个对象
-    return UPInt(lhs.i+rhs.i);
+    return UPInt(lhs.i)+=rhs.i;
 }
 const UPInt operator-(const UPInt& lhs,
                         const UPInt& rhs){
     //调用这个的时候我们并不想改变符号两边的值 c=a+b,我们并不希望改变a和b,所以返回另一个对象
-    return UPInt(lhs.i-rhs.i);
+    return UPInt(lhs.i)-=rhs.i;
 }
 const UPInt operator-(const UPInt& lhs,
                         int rhs){
     //调用这个的时候我们并不想改变符号两边的值 c=a+b,我们并不希望改变a和b,所以返回另一个对象
-    return UPInt(lhs.i-rhs);
+    return UPInt(lhs.i)-=rhs;
 }
 int main(){
     UPInt i(8);
