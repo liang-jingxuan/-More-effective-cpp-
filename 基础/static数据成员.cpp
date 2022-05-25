@@ -6,14 +6,14 @@ class Text
     static int count;
 };
 
-int Text::count=0;//用static成员变量必须要初始化
+int Text::count=0;//锟斤拷static锟斤拷员锟斤拷锟斤拷锟斤拷锟斤拷要锟斤拷始锟斤拷
 
 int main()
 {
     Text t1;
     Text t2;
 
-    t1.count = 100;     //t1对象把static成员count改为100
-    cout<<t2.count<<endl; //当t2对象打印static成员的时候，显示的是100而不是0
+    t1.count = 100;     //t1锟斤拷锟斤拷锟絪tatic锟斤拷员count锟斤拷为100
+    cout<<t2.count<<endl; //锟斤拷t2锟斤拷锟斤拷锟接tatic锟斤拷员锟斤拷时锟斤拷锟斤拷示锟斤拷锟斤拷100锟斤拷锟斤拷锟斤拷0
     return 0;
 }
