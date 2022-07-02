@@ -8,18 +8,27 @@ void _MergeSort_Merge(vector<int> &v,v_iter left,v_iter mid,v_iter right);
 
 template<class CmpMethod>
 void MergeSort(vector<int> &v,v_iter left,v_iter right,CmpMethod){
-    if(left>=right) return;
-    MergeSort(v,left,left+(right-left)/2,CmpMethod());
-    MergeSort(v,left+(right-left)/2+1,right,CmpMethod());
-    _MergeSort_Merge(v,left,left+(right-left)/2,right,CmpMethod());
+    if(v.size()<=1) return;//大小为1不用排序
+    _MergeSort_Split(v,left,right-1,CmpMethod());//保证left~right是左闭右闭区间
+    //如果采用左闭右开的方法,那么在Merge的时候可能mid+1正好是数组的末尾
+}
+
+template<class CmpMethod>
+void _MergeSort_Split(vector<int> &v,v_iter left,v_iter right,CmpMethod){
+    if(left>=right) return;//已经不能再分
+    //还可以再分
+    v_iter mid=left+(right-left)/2;
+    _MergeSort_Split(v , left , mid  ,CmpMethod());
+    _MergeSort_Split(v , mid+1, right,CmpMethod());
+    _MergeSort_Merge(v , left , mid  ,right,CmpMethod());
 }
 
 template<class CmpMethod>
 void _MergeSort_Merge(vector<int> &v,v_iter left,v_iter mid,v_iter right,CmpMethod cmpmethod){
-    vector<int> V_left(left,mid+1 ),V_right(mid+1,right+1);
+    vector<int> V_left(left,mid+1),V_right(mid+1,right+1);
     v_iter Vleft_iter=V_left.begin(),Vright_iter=V_right.begin();
     v_iter Vleft_enditer=V_left.end(),Vright_enditer=V_right.end();//空间换时间,避免了多次查询
-    int len=right-left+1;//这里需要加一,因为迭代器的距离逻辑是:未到目标则+1,到了目标不+1,口口O距离为2
+    int len=right-left+1;
     for(int ix=0;ix<len;ix++){
         if(Vleft_iter!=Vleft_enditer&&Vright_iter!=Vright_enditer){
             if(cmpmethod(*Vleft_iter,*Vright_iter)){
@@ -33,23 +42,17 @@ void _MergeSort_Merge(vector<int> &v,v_iter left,v_iter mid,v_iter right,CmpMeth
         }//左右都还有元素
         else{
             if(Vleft_iter==Vleft_enditer){
-                while(Vright_iter!=Vright_enditer){
-                    *(left+ix)=*Vright_iter;
-                    Vright_iter++;
-                    ix++;
-                }
+                *(left+ix)=*Vright_iter;
+                Vright_iter++;                
             }
             else{
-                while(Vleft_iter!=Vleft_enditer){
-                    *(left+ix)=*Vleft_iter;
-                    Vleft_iter++;
-                    ix++;
-                }
-            break;
-            } //至少一个没有元素了
-        }   
+                *(left+ix)=*Vleft_iter;
+                Vleft_iter++;  
+            }
+        } //至少一个没有元素了
     }
 }
+
 template<typename T>
 class CmpLess{
     public:
@@ -94,17 +97,11 @@ class CmpSpecial{
     }
 };
 main(){
-    vector<int>v{1,56,79,15,6,4561,-6,-6,-11};
-    MergeSort(v ,v.begin(),v.end(),CmpLess<int>());//对数组v中范围内的数组进行排序
+    vector<int>v{1,56,79,15,6,4561,-6,-6,-11,9};
+    vector<int>v2{6,11,-6,-11};
+    MergeSort(v ,v.begin()+6,v.end(),CmpLess<int>());//对数组v中范围内的数组进行排序
     for (auto ix:v){
         cout<<ix<<endl;
     }
     return 0;
 }
-
-//伪代码
-//MergeSort(v,l,r)
-//if(l<r)
-//  MergeSort(v,l,(l+r)/2)
-//  MergeSort(v,(l+r)/2+1,r)
-//  Merge(v,l,(l+r)/2,r)  //其中l到(l+r)/2是子数组1,(l+r)/2+1到r是子数组2
