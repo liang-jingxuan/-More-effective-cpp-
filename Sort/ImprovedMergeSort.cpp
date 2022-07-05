@@ -10,10 +10,11 @@ void _ImprovedMergeSort_Merge(vector<int> &v,v_iter left,v_iter mid,v_iter right
 
 template<class CmpMethod>
 void ImprovedMergeSort(vector<int> &v,v_iter left,v_iter right,CmpMethod){
-    if(v.size()<=1||right<=left) return;//大小为1不用排序,范围不对不排序
+    //调整前是左闭右开
+    if(v.size()<=1) return;//大小为1不用排序,范围不对不排序
 
-    if(right-left+1>v.size()) return;//避免left和right是指向两个vector的指针
-
+    if(right-left>v.size()||right-left<=1) return;//避免left和right是指向两个vector的指针
+    //调整为左闭右闭区间
     _ImprovedMergeSort_Split(v,left,right-1,CmpMethod());//保证left~right是左闭右闭区间
     //如果采用左闭右开的方法,那么在Merge的时候可能mid+1正好是数组的末尾
 }
@@ -120,7 +121,7 @@ class CmpSpecial{
 };
 main(){
     vector<int>v{1,56,79,15,6,4561,-6,-36,-11,9};
-    ImprovedMergeSort(v ,v.begin()+6,v.end(),CmpLess<int>());//对数组v中范围内的数组进行排序
+    ImprovedMergeSort(v ,v.begin(),v.end(),CmpLess<int>());//对数组v中范围内的数组进行排序
     for (auto ix:v){
         cout<<ix<<endl;
     }

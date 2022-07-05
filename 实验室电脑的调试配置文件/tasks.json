@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "debug gdb",  //任务标签，用于标识这个任务
+        "type": "shell",  //任务类型 process表示作为进程进程，shell表示输入命令进行 
+        "command": "g++",//要执行的命令，这里是使用g++编译程序
+        "args": [//命令的一些参数
+          "-g",//
+          "${file}",//当前文件名
+          "-o",//不进行编译优化
+          "${fileBasenameNoExtension}.exe"//当前不包括扩展名的文件名
+        ],
+        //最后拼接起来的shell命令举例 g++ -g c:\Users\muzit\Desktop\lock\LR1.cpp -o LR1.exe
+        "problemMatcher": [
+          "$gcc"
+        ]
+      }
+    ]
+  }
