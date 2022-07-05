@@ -79,7 +79,7 @@ void __InsertSort(v_iter left,v_iter right,CmpMethod cmpmethod){
 template<typename T>
 class CmpLess{
     public:
-    CmpLess(){}
+        CmpLess(){}
     public:
     bool operator()(T &num1,T &num2){
         return num1<num2;
@@ -89,7 +89,7 @@ class CmpLess{
 template<typename T>
 class CmpGreater{
     public:
-    CmpGreater(){}
+        CmpGreater(){}
     public:
     bool operator()(T &num1,T &num2){
         return num1>num2;
