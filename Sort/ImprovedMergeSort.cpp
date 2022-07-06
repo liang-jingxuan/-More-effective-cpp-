@@ -2,6 +2,7 @@
 //比如分到左右数组都大小都是5的时候采用插入排序法,而不是一直分直到L和R数组大小都是1
 #include<iostream>
 #include "vector"
+#include "CMP_h.h"
 using namespace std;
 typedef vector<int>::iterator v_iter;
 void ImprovedMergeSort(vector<int> &v,v_iter left,v_iter right);
@@ -76,49 +77,7 @@ void __InsertSort(v_iter left,v_iter right,CmpMethod cmpmethod){
         }
     }
 }
-template<typename T>
-class CmpLess{
-    public:
-        CmpLess(){}
-    public:
-    bool operator()(T &num1,T &num2){
-        return num1<num2;
-    }
-};
 
-template<typename T>
-class CmpGreater{
-    public:
-        CmpGreater(){}
-    public:
-    bool operator()(T &num1,T &num2){
-        return num1>num2;
-    }
-};
-
-class CmpSpecial{
-    //各个位上的数相加*(正负)
-    public:
-    CmpSpecial(){}
-    public:
-    bool operator()(int num1,int num2){
-        int tmpnum1=0,tmpnum2=0;
-        bool num1symbol=num1>0?true:false,num2symbol=num2>0?true:false;
-        num1*=num1symbol?1:-1;
-        num2*=num2symbol?1:-1;
-        while(num1!=0){
-            tmpnum1+=num1%10;
-            num1/=10;
-        }
-        tmpnum1*=num1symbol?1:-1;
-        while(num2!=0){
-            tmpnum2+=num2%10;
-            num2/=10;
-        }
-        tmpnum2*=num2symbol?1:-1;
-        return CmpLess<int>()(tmpnum1,tmpnum2);
-    }
-};
 main(){
     vector<int>v{1,56,79,15,6,4561,-6,-36,-11,9};
     ImprovedMergeSort(v ,v.begin(),v.end(),CmpLess<int>());//对数组v中范围内的数组进行排序

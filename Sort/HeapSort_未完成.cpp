@@ -1,5 +1,6 @@
 #include <iostream>
 #include "vector"
+#include "CMP_h.h"
 using namespace std;
 typename vector<int>::iterator v_iter;
 //堆排序可以用来求出第N大的数,前N大的数。为了避免空间浪费，一般将原数组进行一定的修改；如果不对原数组进行修改
@@ -60,25 +61,7 @@ void HeapSort<CmpMethod>::sink(vector<int> &v,CmpMethod method){
         }
     }
 }
-template<typename T>
-class CmpLess{
-    public:
-        CmpLess(){}
-    public:
-    bool operator()(T &num1,T &num2){
-        return num1<num2;
-    }
-};
 
-template<typename T>
-class CmpGreater{
-    public:
-        CmpGreater(){}
-    public:
-    bool operator()(T &num1,T &num2){
-        return num1>num2;
-    }
-};
 
 main(){
     vector<int>v{1,56,79,15,6,4561,-6,-36,-11,9};
