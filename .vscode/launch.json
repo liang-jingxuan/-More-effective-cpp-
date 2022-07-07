@@ -12,7 +12,7 @@
         "environment": [],
         "externalConsole": true, // 调试时是否显示控制台窗口，一般设置为true显示控制台
         "MIMode": "gdb", 
-        "miDebuggerPath": "F:\\mingw\\MinGW\\bin\\gdb.exe",
+        "miDebuggerPath": "D:\\mingw\\MinGW\\bin\\gdb.exe",
         // miDebugger的路径，注意这里要与自己的MinGw的路径对应 
         "preLaunchTask": "debug gdb", // 调试会话开始前执行的任务，与tasks.json定义的任务标签相同
       }

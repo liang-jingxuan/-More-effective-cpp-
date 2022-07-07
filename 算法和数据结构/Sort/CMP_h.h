@@ -1,6 +1,7 @@
 #ifndef __CMP_H
 #define __CMP_H
 //存储了常见的比较方式
+#include"vector"
 template<typename T>
 class CmpLess{
     public:
@@ -44,5 +45,6 @@ class CmpSpecial{
             return CmpLess<int>()(tmpnum1,tmpnum2);
         }
 };
+
 
 #endif

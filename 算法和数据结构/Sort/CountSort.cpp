@@ -1,10 +1,12 @@
+//计数排序适用于最大值和最小值相差不大的数组,因为计数排序会创建一个MAX-MIN大小的数组,
+//  用空间换时间
+//计数排序不需要进行大小的比较,直接放在数字所对应的下标位置
 #include <iostream>
 #include "vector"
 #include "CMP_h.h"
 using namespace std;
 typedef vector<int>::iterator v_iter;
-//基数排序适用于最大值和最小值相差不大的数组,因为基数排序会创建一个MAX-MIN大小的数组,用空间换时间
-//基数排序不需要进行大小的比较
+
 void CountSort(vector<int> &v,v_iter left,v_iter right){
     int MinNum=*left,MaxNum=*left;
     for(v_iter p=left;p!=right;p++){
