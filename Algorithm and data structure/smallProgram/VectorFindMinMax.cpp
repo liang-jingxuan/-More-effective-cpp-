@@ -12,6 +12,7 @@ int main(){
         maxNum=maxNum<num?num:maxNum;
         ++cnt;
     }
+
     cout<<"Tradition finding max/min number algorithm's comparition times:"<<cnt<<endl;
     cout<<"The maximum number::"<<minNum<<"\nThe minimum number:"<<maxNum<<endl;
 //2.改进找最大最小值方法
