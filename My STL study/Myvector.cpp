@@ -103,8 +103,8 @@ void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
     //在position位置上插入n个x
     //1.插入后仍然不需要扩充
     if(capacity()>=n){
-        //1.1将position开始位置到finish的元素从后往前复制到position+n的位置
-        copy_backward()
+        //分两种情况,因为要考虑覆盖的问题
+
     }
     else{
     //2.插入后需要扩充
