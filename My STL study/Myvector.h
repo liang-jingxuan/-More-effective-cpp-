@@ -1,5 +1,9 @@
 #ifndef MY_VECTOR_H
 #define MY_VECTOR_H
+#include"Myallocator.h"
+#include "Myconstructor.h"
+namespace mySTL{
+typedef malloc_alloc my_allocator;
 //来自其他文件的内容:1.my_allocator类（分配&释放内存）,2.全局的construct、destroy（构造和析构）
 template<class T, class Alloc=my_allocator>
 class Myvector{
@@ -13,7 +17,7 @@ class Myvector{
     //以上这部分保证了可以使用STL的算法
 
     protected:
-        typedef simple_alloc<value_type,Alloc> data_allocator;
+        typedef Mysimple_alloc<value_type,Alloc> data_allocator;
 
         iterator start;
         iterator finish;
@@ -62,5 +66,5 @@ class Myvector{
     
         
 };
-
+}//namespace mySTL
 #endif

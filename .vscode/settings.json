@@ -1,16 +1,18 @@
 {
     "files.associations": {
-        "vector": "cpp",
-        "iostream": "cpp",
-        "ostream": "cpp",
         "array": "cpp",
+        "atomic": "cpp",
         "deque": "cpp",
         "list": "cpp",
         "string": "cpp",
         "unordered_map": "cpp",
+        "vector": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
         "string_view": "cpp",
         "initializer_list": "cpp",
-        "*.tcc": "cpp",
-        "memory_resource": "cpp"
+        "stop_token": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     }
 }

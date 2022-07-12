@@ -1,5 +1,8 @@
 #include"Myvector.h"
+#include "Myconstructor.h"
 using namespace std;
+namespace mySTL{
+
 
 //****************************public内容:对用户开放的内容
 template<class T,class Alloc>
@@ -9,15 +12,15 @@ Myvector<T,Alloc>::~Myvector(){
 }
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::iterator//返回值,因为这么iterator是在Myvector类内定义的,只在该类的内部使用
+typename Myvector<T,Alloc>::iterator//返回值,因为这么iterator是在Myvector类内定义的,只在该类的内部使用
 Myvector<T,Alloc>::begin(){return start;}
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::iterator
+typename Myvector<T,Alloc>::iterator
 Myvector<T,Alloc>::end(){return finish;}
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::size_type
+typename Myvector<T,Alloc>::size_type
 Myvector<T,Alloc>::size() const {return (size_type)(finish-start);}
 
 template<class T,class Alloc>
@@ -25,23 +28,23 @@ bool //bool不是Myvector特有的,所以不用指定
 Myvector<T,Alloc>::empty()const{ return start==finish;}
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::reference
+typename Myvector<T,Alloc>::reference
 Myvector<T,Alloc>::front()const{return *start;}
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::reference
+typename Myvector<T,Alloc>::reference
 Myvector<T,Alloc>::back()const{return *(finish-1);}
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::size_type
+typename Myvector<T,Alloc>::size_type
 Myvector<T,Alloc>::capacity() const{return (size_type)(end_of_storage-start);}
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::reference
+typename Myvector<T,Alloc>::reference
 Myvector<T,Alloc>::operator[](size_type n){return *(start+n);}
 
 template<class T,class Alloc>
-void Myvector<T,Alloc>::push_back(const T&x){
+void Myvector<T,Alloc>::push_back(const T& x){
     if(finish!=end_of_storage){
         construct(finish,x);
         ++finish;
@@ -58,7 +61,7 @@ void Myvector<T,Alloc>::pop_back(){
     destroy(finish);
 }
 template<class T,class Alloc>
-Myvector<T,Alloc>::iterator
+typename Myvector<T,Alloc>::iterator
 Myvector<T,Alloc>::erase(iterator position){
     if(position+1!=finish){
         copy(position+1,finish,position);//把position+1到finish的元素移动到以position为起点的位置,
@@ -69,7 +72,7 @@ Myvector<T,Alloc>::erase(iterator position){
 }
 
 template<class T,class Alloc>
-Myvector<T,Alloc>::iterator
+typename Myvector<T,Alloc>::iterator
 Myvector<T,Alloc>::erase(iterator first,iterator last){
     //1.先把last后面的元素复制到first的位置
     iterator i=copy(last,finish,first);//完成后i指向结尾,理论上i==last
@@ -154,7 +157,7 @@ void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
 template<class T, class Alloc>
 void Myvector<T,Alloc>::deallocate(){//释放掉目前所有的元素
     if(start)
-        data_allocator::deallocate(start,finish-1);
+        data_allocator::deallocate(start,end_of_storage-finish);
 }
 
 template<class T, class Alloc>
@@ -181,10 +184,10 @@ void Myvector<T,Alloc>::insert_aux(iterator position,const T& x){
         iterator new_finish = new_start;
 
         //进行转移
-        new_finish=unitiallized_copy(start,finish,new_start);//把旧的只进行转移
+        new_finish=uninitialized_copy(start,finish,new_start);//把旧的只进行转移
         construct(new_finish,x);//在末尾构造新的值
         ++new_finish;
-        //new_finish=unitiallized_copy(position,finish,new_finish);//可忽略的一行代码
+        //new_finish=uninitialized_copy(position,finish,new_finish);//可忽略的一行代码
 
         destroy(start,end_of_storage);//原文这里是start到finish?原因:此时finish=end_of_storage,无所谓
         deallocate();
@@ -196,11 +199,11 @@ void Myvector<T,Alloc>::insert_aux(iterator position,const T& x){
 }
 
 template<class T, class Alloc>
-Myvector<T,Alloc>::iterator 
+typename Myvector<T,Alloc>::iterator 
 Myvector<T,Alloc>::allocate_and_fill(size_type n,const T& x) {
     //配置大小为n的空间,在空间上赋值为X
     iterator result=data_allocator::allocator(n);
-    unitiallized_fill_n(result,n,x);//全局变量,在起始为result的空间上赋值n个x
+    uninitialized_fill_n(result,n,x);//全局变量,在起始为result的空间上赋值n个x
     return result;
 }
 
@@ -211,3 +214,4 @@ void Myvector<T,Alloc>::fill_initialize(size_type n,const T& val){
     end_of_storage=finish;
 }
 
+}//namespace mySTL
