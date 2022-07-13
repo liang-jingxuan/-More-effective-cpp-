@@ -13,7 +13,15 @@
     "initializer_list": "cpp",
     "stop_token": "cpp",
     "type_traits": "cpp",
-    "utility": "cpp"
+    "utility": "cpp",
+    "xutility": "cpp",
+    "forward_list": "cpp",
+    "memory": "cpp",
+    "sstream": "cpp",
+    "xmemory": "cpp",
+    "xstring": "cpp",
+    "xtree": "cpp",
+    "algorithm": "cpp"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",

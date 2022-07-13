@@ -2,7 +2,7 @@
 #define __MYALLOCATOR_H
 using namespace std;
 #include<stdlib.h>
-#include "Mytraint.cpp"
+#include "Mytraint.h"
 #if 0
 #   include <new>
 #   define __THROW_BAD_ALLOC throw bad_alloc
@@ -11,6 +11,8 @@ using namespace std;
 #   define __THROW_BAD_ALLOC std::cerr<<"oom!"<<std::endl; exit(1);
 #endif
 namespace mySTL{
+
+    
 //*******************************************1.包装
 template<class T,class Alloc>//T是数据类型,Alloc是分配一个T所使用的空间分配算法
 class Mysimple_alloc{//这个类只是转调用
@@ -125,13 +127,13 @@ uninitialized_fill_n(ForwardIterator first,Size n,const T& x){//在first位置�
 template<class ForwardIterator,class Size,class T,class T1>
 ForwardIterator 
 __uninitialized_fill_n(ForwardIterator first,Size n,const T& x,T1*){
-    typedef typename __Mytype_traits<T1>::is_POD_type  is_POD_type;
+    typedef typename __Mytype_traits< T1 >::is_POD_type  is_POD_type;
     return __uninitialized_fill_n_aux(first,n,x, is_POD_type());
 }
 
 template<class ForwardIterator,class Size,class T>
 inline ForwardIterator
-__uninitialized_fill_n_aux(ForwardIterator first,Size n,const T& x,__Myfalse_type){
+__uninitialized_fill_n_aux(ForwardIterator first,Size n,const T& x, __Myfalse_type){
     ForwardIterator cur=first;
     for(;n>0;--n,++cur){
         construct(&*cur,x);
@@ -181,6 +183,11 @@ __uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator 
         construct(&*cur,*first);
     }
     return cur;
+}
+template<class InputIterator,class ForwardIterator>
+inline ForwardIterator
+__uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator result,__Mytrue_type){
+    return copy(first,last,result);
 }
 //4.3 uninitialized_fill
 }//namespace mySTL
