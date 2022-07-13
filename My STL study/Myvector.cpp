@@ -103,12 +103,51 @@ void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
     //在position位置上插入n个x
     //1.插入后仍然不需要扩充
     if(capacity()>=n){
-        //1.1将position开始位置到finish的元素从后往前复制到position+n的位置
-        copy_backward()
+        //分两种情况,因为要考虑覆盖的问题
+        const size_type elems_after=finish-position;//要迁移的元素个数
+                                                    //当elems_afer>n时,elems_after之后元素的有可能被覆盖
+        iterator old_finish=finish;
+        T x_copy=x;
+        //1考虑覆盖问题
+        if(elems_after > n){//要迁移的元素个数大于新增的元素个数
+             //1.1大于n的时候复制的话,前面的数据会覆盖后面的数据,导致后面的数据丢失,因此要从后往前复制
+            uninitialized_copy(finish-n,finish,finish);//主要目的是在空间上构造对象
+            finish+=n;
+            copy_backward(position,old_finish-n,finish);
+            fill(position,position+n,x_copy);
+        }
+        else{
+            //1.2小于等于n的时候进行迁移不必担心覆盖的问题;举例 :需要迁移elem_after=3个,新增n=5个
+            uninitialized_fill_n(finish,n-elems_after,x_copy);//开n-elems_after个槽用,使得刚好能放下新增的元素
+            //[* * * position(1) 2 3 old_finish(x)=finish(x) x] 
+            finish+=n-elems_after;//使finish指向正确位置;
+            //[* * * position(1) 2 3 old_finish(x) x finish(nill)]  (*和1 2 3是旧元素,x是新增元素)
+            uninitialized_copy(position,old_finish+n,finish);//将旧的值进行搬移
+            //[* * * psition(1),2,3,old_finish(x) x finish(1) 2,3]
+            finish+=elems_after;
+            //[* * * psition(1),2,3,old_finish(x) x 1 2,3 finish(nill)]
+            fill(position,old_finish,x_copy);
+            //[* * * psition(x),x,x,old_finish(x) x 1 2,3 finish(nill)]
+        }
+        
+        
     }
     else{
-    //2.插入后需要扩充
-
+    //2.插入后需要扩充capacity()<=end_of_storage
+        const size_type old_size=size();
+        const size_type new_size=old_size+max(old_size,n);
+        //这里没有进行2倍扩充,因为2倍扩充后可能能仍然无法放下新增的n个元素
+        iterator new_start=Alloc::allocate(new_size);
+        iterator new_finish=new_start;
+        new_finish=uinitialized_copy(start,position,new_start);// 插入点之前的元素搬移
+        new_finish=uinitialized_fill_n(new_finish,n,x);
+        new_finish=uinitialized_copy(position,finish,new_finish);
+    //3.处理旧容器
+        destroy(start,finish);
+        deallocate();
+        start=new_start;
+        finish=new_finish;
+        end_of_storage=new_start+new_size;
     }
 }
 //************************************protected内容:不对用户开放的,但可能被public函数调用实现某些功能的函数
