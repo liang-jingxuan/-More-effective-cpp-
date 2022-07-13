@@ -5,7 +5,7 @@
 //    但是如果vector里放的不是原生类，而是自定义的类，那么这些类就需要被构造和析构。
 //用于在已有的空间上构造对象
 #include <new.h>
-#include "Mytraint.h"
+#include "Mytraint.cpp"
 //需要用到型别提取类,
 namespace mySTL{
 //*******************对于单个对象

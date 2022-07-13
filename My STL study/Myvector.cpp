@@ -1,5 +1,5 @@
 #include"Myvector.h"
-#include "Myconstructor.h"
+#include "Myconstructor.cpp"
 using namespace std;
 namespace mySTL{
 
@@ -213,5 +213,7 @@ void Myvector<T,Alloc>::fill_initialize(size_type n,const T& val){
     finish=start + n;
     end_of_storage=finish;
 }
-
+void fun(){
+    cout<<"Hello word!"<<endl;
+}
 }//namespace mySTL
