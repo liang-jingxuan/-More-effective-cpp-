@@ -57,7 +57,17 @@ class Myvector{
         Myvector(int n,const T&val){fill_initialize(n,val);}//√
         Myvector(long n,const T&val){fill_initialize(n,val);}//√
         explicit Myvector(size_type n){fill_initialize(n,T());}//√
-
+        Myvector(const std::initializer_list<value_type> &l){
+            //申请空间
+            start = data_allocator::allocate(l.size()*sizeof(T));
+            iterator cur=start;
+            for(size_type ix=0;ix<l.size();++cur,++ix){
+                construct(cur,*(l.begin()+ix));
+            }
+            finish=cur;
+            end_of_storage=finish;
+            //构造对象
+        }
         //析构
         ~Myvector(){
             destroy(start,finish);//全局函数,用来析构start到finish之间的对象
@@ -262,7 +272,7 @@ template<class T, class Alloc>
 typename Myvector<T,Alloc>::iterator 
 Myvector<T,Alloc>::allocate_and_fill(size_type n,const T& x) {
     //配置大小为n的空间,在空间上赋值为X
-    iterator result=data_allocator::allocator(n);
+    iterator result=data_allocator::allocate(n);
     uninitialized_fill_n(result,n,x);//全局变量,在起始为result的空间上赋值n个x
     return result;
 }
