@@ -3,7 +3,8 @@
 #include"Myallocator.h"
 #include "Myconstructor.h"
 namespace mySTL{
-typedef malloc_alloc my_allocator;
+//typedef malloc_alloc my_allocator;//一级配置器
+typedef pool_alloc   my_allocator;//二级配置器
 //来自其他文件的内容:1.my_allocator类（分配&释放内存）,2.全局的construct、destroy（构造和析构）
 template<class T, class Alloc=my_allocator>
 class Myvector{

@@ -119,6 +119,7 @@ enum    {__MAX_BYTES=128};//块的最大尺寸，超过这个值使用mlloc_allo
 enum    {__NFREELISTS=__MAX_BYTES/__ALIGN};//free-list的元素个数
 template<bool threads,int inst>
 class LV2_alloc {
+    //定义一个内存池,一个内存链表。内存链表中的内存来自内存池，内存池的空间来自malloc
     private:
         static size_t round_up(size_t bytes){
             return (((bytes) + __ALIGN-1)&~(__ALIGN-1));
@@ -146,30 +147,30 @@ class LV2_alloc {
     //配置可以容纳nobj个大小为size的区块,即大小为size*nobj
         static char *chunk_alloc(size_t size,int &nobj);
         
-        static char* start;//链表的起始位置
-        static char* finish;
+        static char* pool_start;//内存池的起始地址
+        static char* pool_finish;//内存池的终点位置
         static size_t heap_size;
 //++++++++++++++++++++++以上是为了实现二级空间配置器所必须的工具
 //++++++++++++用户需要的只是以下三个函数,即分配/释放空间,不管具体如何实现
     public://对外开放的内容只有 释放和分配内存
         static void* allocate(size_t n);
-        static void deaalocate(void* p,size_t n);
+        static void deallocate(void* p,size_t n);
         static void* reallocate(void* p,size_t old_sz,size_t new_sz);
 };
 
 template<bool threads,int inst>
-char* LV2_alloc<threads,inst>::start=0;
+char* LV2_alloc<threads,inst>::pool_start=0;
 
 template<bool threads,int inst>
-char* LV2_alloc<threads,inst>::finish=0;
+char* LV2_alloc<threads,inst>::pool_finish=0;
 
 template<bool threads,int inst>
 size_t LV2_alloc<threads,inst>::heap_size=0;
 
 template<bool threads,int inst>
-LV2_alloc<threads, inst>::obj * volatile 
+typename LV2_alloc<threads, inst>::obj * volatile 
 LV2_alloc<threads, inst>::free_list[__NFREELISTS]=
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 //free_list是一个装载 obj* volatile类型的数组,即free_list里的每个元素都是
 //  obj* volatile 类型的
 
@@ -199,7 +200,7 @@ void* LV2_alloc<threads,inst>::allocate(size_t n){
 }
 
 template<bool threads,int inst>
-void LV2_alloc<threads,inst>::deaalocate(void *p,size_t n){
+void LV2_alloc<threads,inst>::deallocate(void *p,size_t n){
     //1.判断是否>128,是则用free
     if(n>128){
         malloc_alloc::deallocate(p,n);
@@ -214,11 +215,14 @@ void LV2_alloc<threads,inst>::deaalocate(void *p,size_t n){
     *position=q;//再让前置节点指向插入节点q
 }
 
+//*问题:什么情况下refill会被调用
+//*答:  当在在freelist对应的位置上找不到空间块的时候,
+//      使用refill向freelist该位置上填充空间.每次填充都填充20个
 template<bool threads,int inst>
 void * LV2_alloc<threads,inst>::refill(size_t n){//装填内存大小为n的数组元素
     int nobjs=20;//默认装填20个
     //1.获取20个大小为n的空间
-    char* chunk = chunk_alloc(n,objs);//objs是输入参数也是输出参数
+    char* chunk = chunk_alloc(n,nobjs);//objs是输入参数也是输出参数
                                     //输入:objs=需要数量
                                     //输出:objs=获得的数量
     obj* volatile *position;
@@ -242,8 +246,81 @@ void * LV2_alloc<threads,inst>::refill(size_t n){//装填内存大小为n的数�
     current_obj->free_list_link=0;//已经分配完了
     //3.整理完毕,返回用户所请求的空间
     return result;
+}
+
+//问:什么情况下调用chunk_alloc?
+//答:当freelist所需位置没有空间时调用refill向freelist该位置填充空间,
+//  填充的空间来自内存池,从内存池要空间需要调用chunk_alloc
+template<bool threads,int inst>
+char* LV2_alloc<threads,inst>::chunk_alloc(size_t size,int &nobj){
+        //申请nobj个大小为size的空间，并把实际申请到的空间个数反馈到nobj
+    char *result;//要返回给用户的空间
+    size_t total_bytes=size*nobj;
+    size_t bytes_left = pool_finish-pool_start;//内存池剩余空间
+
+    if(total_bytes<=bytes_left){
+        //1.内存池内空间充足
+        result = pool_start;
+        pool_start+=total_bytes;//分配给了链表
+        return result; 
+    } else if(bytes_left>=size){
+        //2.至少能分出一个
+        nobj = bytes_left/size;//剩余的空间能分配的大小为size的空间个数
+        total_bytes = size*nobj;//分走的空间大小
+        result = pool_start;
+        pool_start+=total_bytes;
+        return result;
+    }else{
+        //3.一点空间也拿不出
+        size_t bytes_to_get = 2*total_bytes + round_up(heap_size>>4);//欲申请的空间大小,除了考虑现在的需要,
+                                            //还要考虑将来需求,所以要了2倍的总空间大小+一些富余的
+        if(bytes_left>0){
+            //内存池还有剩余的空间,将其放到链表上
+            obj* volatile *position = free_list + freelist_idx(bytes_left);
+            ((obj*)pool_start)->free_list_link=*position;//将剩余空间挂到链表上
+            *position=(obj*)pool_start;
+        }
+
+        pool_start = (char*)malloc(bytes_to_get);
+        if(pool_start==0){
+            //没有申请到空间,从链表中的较大空间中抠空间出来放到内存池
+            int i;
+            obj * volatile *position,*tmpPointer;
+            for(i = size;i < __MAX_BYTES;++i){
+                position = free_list + freelist_idx(i);//处理链表位置
+                tmpPointer=*position;//给内存池
+                if(position!=0){
+                    //如果链表上该位置至少有一个空间块，则贡献一块出来
+                    *position = tmpPointer->free_list_link;;
+                    pool_start = (char *)tmpPointer;
+                    pool_finish = pool_start+i;
+                    return (chunk_alloc(size,nobj));//一旦从链表中获取到任何一块内存就返回给用户
+                                            //      如果可以则完成任务,(if,不可能执行),说明成功分配了nobj个size大小的空间
+                                            //这段代码一般不回执行,因为链表最小的内存块大小为8,8*20=160>128,所以这一段不可能执行
+                                            //
+                                            //      如果能分配至少一个size大小内存则更新nobj,(else if,多数情况下的执行)
+                                            //如果链表上有大小为size的空间,则最后用户得到1个size大小空间;
+                                            //如果链表上没有大小为size的空间,则最后用户得到多个size大小的空间(size的n倍)
+                                            //
+                                            //      如果仍然一个也分配不出去(else,不可能执行),
+                                            //因为从链表中抠空间的时候,我们令i=size,说明至少能抠一个出来,如果一块也抠不出来不回进行递归
+                                            //所以这一句的主要目的是更新bobj
+                }
+            }
+            //跑出这个循环说明链表上一点空间都没有了
+            pool_finish= 0;
+            pool_start= (char*)malloc_alloc::allocate(bytes_to_get);//malloc没分配到就返回0,分配到就返回起始指针
+                                                                //自定义的allocate在调用malloc分配到0的时候回抛出异常
+        }
+        //malloc分配到了空间,皆大欢喜!
+        heap_size+=bytes_to_get;
+        pool_finish=pool_start+bytes_to_get;
+        return (chunk_alloc(size,nobj));
+    }
 
 }
+
+typedef LV2_alloc<true,0> pool_alloc;
 //*******************************************4.内存的基本处理工具
 //4.1--uninitialized_fill_n:填充n个值为x的数据在first开始的位置,返回结束位置
 template<class ForwardIterator,class Size,class T,class T1>
