@@ -1,6 +1,8 @@
 #ifndef __MYLIST_H
 #define __MYLIST_H
 #include "Mytraint.h"
+#include "Myallocator.h"
+#include "Myconstructor.h"
 namespace mySTL{
 //**************1.链表的一个节点的定义
 template <class T>
@@ -15,7 +17,7 @@ struct __listnode{
 template<class T,class Ref,class Ptr>
 struct __list_iterator{
     typedef __list_iterator<T,T&,T*> iterator;
-    typedef __list_iterator<T,Ref,Ptr> self;
+    typedef __list_iterator<T,Ref,Ptr> self;//迭代器本身
 
     typedef bidirectional_iterator_tag iterator_catagory;
     typedef T               value_type;//数据的类型     int
@@ -25,7 +27,7 @@ struct __list_iterator{
     typedef size_t          size_type;
     typedef ptrdiff_t       difference_type;
     
-    //迭代器类内应该有一个迭代器
+    //linktype=__listnode<T>*,即linktype是一个指向节点的指针
     linktype node;
     //构造函数,用以构造迭代器
     __list_iterator(linktype x):node(x){}//list<int>::iterator p(mylist.begin()+2);
@@ -41,14 +43,189 @@ struct __list_iterator{
         return node!=x.node;
     }
 
-    reference operator*()const{return *(node).data;}
+    //reference是指对象本身
+    reference operator*()const{return *(node).data;}//指向指针所指的对象*(node)的数据*(node).data
 
-    pointer operator->()const{return &(operator*());}//返回迭代器所指向的节点的地址
+    //pointer指的是,指向对象的指针,如调用p->的时候,我们是间接引用对象的成员
+    pointer operator->()const{return &(operator*());}//返回迭代器所指向的对象的指针
+
+    //从下面的代码可以回到self是指迭代器本身
+    //  理由:返回值是self&的时候返回了*this,this是一个指向__list_iterator的指针,而*this就是迭代器本身.
+    self& operator++(){//++p
+        node=(linktype)((*node).next);//等价于node=node->next
+        return *this;
+    }
+
+    self& operator--(){//--p
+        node=(linktype)((*node).prev);//等价于node=node->next
+        return *this;//返回*this是因为this是一个指针,*this表示返回指向的对象
+    }
+
+    self operator++(int){//p++
+        //不返回self&,因为返回的是一个copy,退出函数会被析构,因此返回一个临时对象即可
+        self res=*this;
+        ++*this;
+        return res;
+    }
+
+    self operator--(int){//p++
+        //不返回self&,因为返回的是一个copy,退出函数会被析构,因此返回一个临时对象即可
+        self res=*this;
+        --*this;
+        return res;
+    }
 };
 
 
 //**************3.链表的迭代
+template<class T,class Alloc=pool_alloc>
+class list{
+    protected:
+        typedef __listnode<T> list_node;//节点,不向外开
+    public:
+        typedef list_node* linktype;//指向节点的指针 linktype=__listnode<T>*
+        typedef Mysimple_alloc<list_node,Alloc> list_allocator;//第一个参数是list_node
+                                                                //是因为这个容器装的是一个个链表节点.
 
+        typedef __list_iterator<T,T&,T*>                iterator;//指向节点的指针
+        typedef __list_iterator<T,const T&,const T*>    const_iterator;
+        typedef size_t                                  size_type;
+        typedef ptrdiff_t                               difference_type;
+        typedef list_node                               reference;
+        typedef T                                       value_type;
+        typedef value_type*                             pointer;
+        typedef const value_type&                       const_reference;
+        typedef const value_type*                       const_pointer;
 
+    protected:
+        linktype node;//node是一个指向节点的指针  所以*node是节点本身.iterator
+                        //list的本质是一个指向一个节点的指针
+    public://用户接口
+        iterator begin(){return (linktype)(*node).next;}
+        iterator end(){return node;}//左闭右开,因为end必须是一个开区间
+        bool empty(){return (*node).next==node;}
+        size_type size(){
+            size_type res;
+            distance(begin(),end(),res);//迭代器函数
+            return res;
+        }
+
+        reference front(){
+            //链表头结点
+            return *(node->next);
+        }
+
+        reference back(){
+            return *(node->prev);
+        }
+
+        //构造和析构
+        list():node(list_allocator::allocate()){
+            node->prev=node;
+            node->next=node;
+        }
+
+        void push_back(const T& x){
+            insert(end(),x);//在
+        }
+
+        void push_front(const T& x){
+            insert(node->next,x);
+        }
+
+        void pop_back(){
+            erase(begin());
+        }
+
+        void pop_front(){
+            erase(--end());
+        }
+
+        iterator insert(iterator position,const T& x){//插队函数
+            //让position成为新节点的下一个节点
+            linktype tmp=creatnode(x);
+            tmp->next=position.node;
+            tmp->prev=position.node->prev;
+            tmp->prev->next=tmp;
+            position.node->prev=tmp;
+            return tmp;
+        }
+
+        void clear(){
+            linktype cur=begin();
+            while(cur!=node){
+                linktype tmp=cur;//tmp标记要删除的节点,方便destroy
+                cur=tmp->next;//标记下一个要删除的节点
+                destroynode(tmp);
+            }
+            node->prev=node;
+            node->next=node;
+        }
+
+        void remove(const T& x){
+            //移除所有值为x的数据
+            iterator first=begin();
+            iterator last=end();
+            while(first!=last){
+                iterator next=first;
+                ++next;
+                if(*first==x) erase(first);
+                first=next;
+            }
+        }
+
+        void unique(){
+            if(empty()) return;
+            iterator first=begin(),last=end(),next=first;
+            while(++next!=last){
+                if(*first==*next){
+                    erase(next);
+                }else{
+                    first=next;
+                }
+                next=first;
+            }
+        }
+
+        iterator erase(iterator position){
+            linktype next_node=linktype(position.node->next);//创建一个指针指向下一个节点
+            linktype prev_node=linktype(position.node->prev);
+            prev_node->next=next_node;
+            next_node->prev=prev_node;
+            destroynode(position.node);
+            release_node(position.node);
+            return iterator(next_node);            
+        }
+    protected:
+        linktype get_node(){//配置空间
+            return list_allocator::allocate();
+        }
+
+        void release_node(void p){//释放空间
+            list_allocator::deallocate(p);
+        }
+
+        linktype creatnode(const T& x){//配置空间+构造
+            linktype p=list_allocator::allocate();
+            construct(&p->data,x);//为什么只构造数据?
+                                //因为原生指针没有构造和析构一说
+            return p;
+        }
+
+        void destroynode(linktype p){
+            destroy(&p->data);//为什么只destroy数据?
+            release_node(p);
+        }
+
+        //iterator是有附加功能的*p,因此*iterator相当于*p,即对象本神,在这里是节点本身
+        void transfer(iterator position,iterator __first, iterator __last){
+            //将[first,last)的元素插队到position,即输出:[fist,last-1] position
+            if(__last!=position){//因为要搬到position之前,如果last==position,说明不用搬
+                (*(linktype( (*__last.node).prev ))).next=position.node;
+                (*position.node)
+
+            }
+        }
+};
 }//namespace mySTL;
 #endif//__MYLIST_H

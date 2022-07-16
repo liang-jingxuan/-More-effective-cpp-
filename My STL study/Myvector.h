@@ -18,7 +18,8 @@ class Myvector{
     //以上这部分保证了可以使用STL的算法
 
     protected:
-        typedef Mysimple_alloc<value_type,Alloc> data_allocator;
+        typedef Mysimple_alloc<value_type,Alloc> data_allocator;//第一个参数是value_type是因为这个容器内部
+                                                                //装的是一个个value_type类型的数据
 
         iterator start;
         iterator finish;
