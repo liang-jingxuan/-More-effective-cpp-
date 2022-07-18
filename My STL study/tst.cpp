@@ -105,19 +105,23 @@ int Mylisttest(){
         cout<<"\nTest that if the list is cycled. Res:no"<<endl;
     cout<<"Size of the list:" << mlist.size()<<endl;
     //5.测试splice
+    cout<<"\nsplice test:"<<endl;
+    cout<<"\n1.splice other list test:"<<endl;
     mySTL::list<int> l1,l2;
     l1.push_back(15);l2.push_back(56);
     mlist.splice(mlist.begin(),l1);
     mlist.splice(mlist.end(),l2);
     for(pl=mlist.begin();pl!=mlist.end();++pl)
         cout<<*pl<<',';
-    
-    mlist.splice(++mlist.begin(),l1,mlist.begin(),mlist.end());
+    cout<<"\n2.splice a range test:"<<endl;
+    mlist.splice(mlist.begin()+6,l1,mlist.begin()+7,mlist.end());
         for(pl=mlist.begin();pl!=mlist.end();++pl)
         cout<<*pl<<',';
-    //mlist.reverse();
-    //for(;pl!=mlist.end();++pl)
-    //    cout<<*pl<<',';
+
+    cout<<"\nreverse test:"<<endl;
+    mlist.reverse();
+    for(pl=mlist.begin();pl!=mlist.end();++pl)
+        cout<<*pl<<',';
     return 1;
 }
 

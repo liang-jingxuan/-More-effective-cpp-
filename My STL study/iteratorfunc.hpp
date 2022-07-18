@@ -36,10 +36,28 @@ namespace mySTL{
 //2.指针的快速定位,
 //如果不写这个函数,那么迭代器的位置需要多次++p,但是写了这个可以p+6
 
+    template<class InputIterator,class Distance>
+    inline void
+    __advance(InputIterator& i,Distance n,
+                input_iterator_tag){
+        while(n--) ++i;
+    }
 
+    template<class BidirectionalIterator,class Distance>
+    inline void
+    __advance(BidirectionalIterator& i,Distance n,
+                bidirectional_iterator_tag){
+        if(n>=0)
+            while(n--) ++i;
+        else
+            while(n++) --i;
+    }
 
-
-
+    template<class RandomAccessIterator,class Distance>
+    inline void __advance(RandomAccessIterator& i,Distance n,
+                            random_access_iterator_tag){
+        i+=n;
+    }
 
     template<class InputIterator,class Distance>
     inline void

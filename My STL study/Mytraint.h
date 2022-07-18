@@ -46,10 +46,17 @@ struct Myiterator_traits<const T*>{
     typedef   const T&                       reference;
 };
 
-template<class Iterator>
-inline typename Myiterator_traits<Iterator>::value_type*
-value_type(const Iterator&){
-    return static_cast<typename Myiterator_traits<Iterator>::value_type*>(0);
+template<class I>
+inline typename Myiterator_traits<I>::value_type*
+value_type(const I&){
+    return static_cast<typename Myiterator_traits<I>::value_type*>(0);
+}
+
+template<class I>
+inline typename Myiterator_traits<I>::iterator_category
+iterator_category(const I&){
+    typedef typename Myiterator_traits<I>::iterator_category category;
+    return category();//返回一个临时对象
 }
 //***********************2.提取某一数据类型的特征
 //比如是否有高效的构造函数等,比如直接用malloc,memcpy

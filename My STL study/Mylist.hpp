@@ -320,21 +320,25 @@ class list{
         void reverse(){//有bug
             //链表反转 2,4,6,10->10,6,4,2
             if(node->next==node||node->next->next==node) return;//size=0或1,用size()==0||size()==1比较慢
-
+            //我的方案:每次把最后一个数已到记号数前面
             iterator first=begin();//不断把最后一个元素插入到cur前面,直到cur->next==end
-            ++first;
-            while(first!=end()){
-                iterator old=first;
-                ++first;
-                transfer(begin(),old,first);
+            int i=size()-1;
+            while(i--){
+                transfer(first,end().node->prev,end());
             }
+            //++first;
+            //while(first!=end()){
+            //    iterator old=first;
+            //    ++first;
+            //    transfer(begin(),old,first);
+            //}
         }
 
         void sort(){
             if(node->next==node||node->next->next==node) return;//size=0或1,用size()==0||size()==1比较慢
-
-            //快排迭代版
-
+            //很适合用归并排序
+            //5个元素以内用BUBLE_Sort
+            while(!empty())
         }
 };
 }//namespace mySTL;
