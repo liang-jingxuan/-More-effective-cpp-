@@ -1,10 +1,12 @@
 #include <iostream>
 #include"Myvector.h"
+#include "Mylist.hpp"
 using namespace std;
-int main(){
+int Myvectortst(){
+
     //1.Myallocator 文件测试:OK
     //void *p=mySTL::Mysimple_alloc<void,mySTL::malloc_alloc>::allocate(66);
-    //mySTL::Mysimple_alloc<void,mySTL::malloc_alloc>::deallocate(p,66);
+    //mySTL::Mysimple_alloc<void,mySTL::malloc_alloc>::deallocate(p,66)
 
     mySTL::Myvector<int> v;
     cout<<"Capacity of v:"<<v.capacity()<<endl;
@@ -71,5 +73,56 @@ int main(){
     cout<<"Capacity of v:"<<v4.capacity()<<endl;//
     cout<<"\n After v4=";
     for (auto num:v4){cout<<num<<',';}
+    return 1;
+}
+
+int Mylisttest(){
+    //1.构造测试
+    mySTL::list<int> mlist;
+    //2.pushback,pushfront测试
+    for(int ix=5;ix<10;++ix)
+        mlist.push_back(ix);
+    for(auto num:mlist){
+        cout<<num<<',';
+    }
+    cout<<"\n";
+    for(int ix=4;ix>-3;--ix)
+        mlist.push_front(ix);
+    for(auto num:mlist){
+        cout<<num<<',';
+    }
+    //3.back,front测试
+    cout<<"\n";
+    cout<<"\nThe last number is "<<mlist.back().data<<endl;
+    cout<<"The first number is "<<mlist.front().data<<endl;
+    //4.iterator测试
+    cout<<"\n";
+    mySTL::list<int>::iterator pl=mlist.begin();
+    for(;pl!=mlist.end();++pl)
+        cout<<*pl<<',';
+    ++pl;
+    if(pl==mlist.begin())
+        cout<<"\nTest that if the list is cycled. Res:no"<<endl;
+    cout<<"Size of the list:" << mlist.size()<<endl;
+    //5.测试splice
+    mySTL::list<int> l1,l2;
+    l1.push_back(15);l2.push_back(56);
+    mlist.splice(mlist.begin(),l1);
+    mlist.splice(mlist.end(),l2);
+    for(pl=mlist.begin();pl!=mlist.end();++pl)
+        cout<<*pl<<',';
+    
+    mlist.splice(++mlist.begin(),l1,mlist.begin(),mlist.end());
+        for(pl=mlist.begin();pl!=mlist.end();++pl)
+        cout<<*pl<<',';
+    //mlist.reverse();
+    //for(;pl!=mlist.end();++pl)
+    //    cout<<*pl<<',';
+    return 1;
+}
+
+int main(){
+    //Myvectortst();
+    Mylisttest();
     return 1;
 }

@@ -1,6 +1,7 @@
 #ifndef MY_TRAINT_H
 #define MY_TRAINT_H
 //***********************0.迭代器类型
+
 namespace mySTL{
 struct input_iterator_tag{};
 struct output_iterator_tag{};
@@ -18,13 +19,13 @@ struct iterator{
     typedef Reference   reference;
 };
 
-template<class Iterator>//针对自定义的指定
+template<class I>//针对自定义的指定
 struct Myiterator_traits{
-    typedef typename  Iterator::iterator_category    iterator_category;
-    typedef typename  Iterator::value_type           value_type;
-    typedef typename  Iterator::difference_type      defference_type;
-    typedef typename  Iterator::pointer              pointer;
-    typedef typename  Iterator::reference            reference;
+    typedef typename  I::iterator_category    iterator_category;
+    typedef typename  I::value_type           value_type;
+    typedef typename  I::difference_type      defference_type;
+    typedef typename  I::pointer              pointer;
+    typedef typename  I::reference            reference;
 };
 
 template<class T>//针对自定义的指定

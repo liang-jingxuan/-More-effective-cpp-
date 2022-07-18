@@ -3,6 +3,11 @@
 #include "Mytraint.h"
 #include "Myallocator.h"
 #include "Myconstructor.h"
+#include "iteratorfunc.hpp"
+//CTRL+F 搜查 important可以找到重要知识点
+//#include "list"
+//std::list<T>::iterator  //在文件stl_list.h
+using namespace mySTL;
 namespace mySTL{
 //**************1.链表的一个节点的定义
 template <class T>
@@ -14,14 +19,16 @@ struct __listnode{
 };
 
 //*************2.链表的迭代器
+//node是__listnode<T>*类型的,也就是说 node是一个指向节点的指针
+//important:迭代器是一种对指针进行包装的类
 template<class T,class Ref,class Ptr>
 struct __list_iterator{
     typedef __list_iterator<T,T&,T*> iterator;
     typedef __list_iterator<T,Ref,Ptr> self;//迭代器本身
 
-    typedef bidirectional_iterator_tag iterator_catagory;
+    typedef bidirectional_iterator_tag iterator_category;
     typedef T               value_type;//数据的类型     int
-    typedef Ptr             Pointer;//数据的指针        int*
+    typedef Ptr             pointer;//数据的指针        int*
     typedef Ref             reference;//数据的引用      int&
     typedef __listnode<T>*  linktype;
     typedef size_t          size_type;
@@ -35,19 +42,19 @@ struct __list_iterator{
     __list_iterator(const iterator& x):node(x.node){}
 
     //迭代器的遍历规则
-    bool operator==(iterator self& x) const{//为什么是self?
+    bool operator==(const self& x) const{//为什么是self?
         return node==x.node;
     }
 
-    bool operator!=(iterator self& x) const{
+    bool operator!=(const self& x) const{
         return node!=x.node;
     }
 
-    //reference是指对象本身
-    reference operator*()const{return *(node).data;}//指向指针所指的对象*(node)的数据*(node).data
+    //reference是指对象本身,由于node是一个指向节点的指针,因此需要先解引用*(node)得到节点,然后
+    reference operator*()const{return (*node).data;}//指向指针所指的对象*(node)的数据*(node).data
 
     //pointer指的是,指向对象的指针,如调用p->的时候,我们是间接引用对象的成员
-    pointer operator->()const{return &(operator*());}//返回迭代器所指向的对象的指针
+    pointer operator->()const{return &(*node);}//返回迭代器所指向的对象的指针
 
     //从下面的代码可以回到self是指迭代器本身
     //  理由:返回值是self&的时候返回了*this,this是一个指向__list_iterator的指针,而*this就是迭代器本身.
@@ -74,10 +81,24 @@ struct __list_iterator{
         --*this;
         return res;
     }
+
+    self operator+(int n){
+        advance(*this,n);
+        return *this;
+    }
+
+    self operator-(int n){
+        (*this).operator+(-n);
+        return *this;
+    }
 };
 
 
 //**************3.链表的迭代
+//linktype==__listnode<T>*
+//iterator==__list_iterator<T,T&,T*>==struct{__listnode<T>* }  
+//*iterator即调用 __list_iterator<T>::operator*()
+
 template<class T,class Alloc=pool_alloc>
 class list{
     protected:
@@ -87,7 +108,7 @@ class list{
         typedef Mysimple_alloc<list_node,Alloc> list_allocator;//第一个参数是list_node
                                                                 //是因为这个容器装的是一个个链表节点.
 
-        typedef __list_iterator<T,T&,T*>                iterator;//指向节点的指针
+        typedef __list_iterator<T,T&,T*>                iterator;//iterator是一个包装着指向节点的指针的结构体(类)
         typedef __list_iterator<T,const T&,const T*>    const_iterator;
         typedef size_t                                  size_type;
         typedef ptrdiff_t                               difference_type;
@@ -98,15 +119,19 @@ class list{
         typedef const value_type*                       const_pointer;
 
     protected:
-        linktype node;//node是一个指向节点的指针  所以*node是节点本身.iterator
+        linktype node;//node是一个指向节点的指针  所以*node是节点本身
                         //list的本质是一个指向一个节点的指针
     public://用户接口
-        iterator begin(){return (linktype)(*node).next;}
-        iterator end(){return node;}//左闭右开,因为end必须是一个开区间
+        iterator begin(){
+            return (linktype)(*node).next;
+        }
+        iterator end(){
+            return node;
+        }//左闭右开,因为end必须是一个开区间
         bool empty(){return (*node).next==node;}
         size_type size(){
             size_type res;
-            distance(begin(),end(),res);//迭代器函数
+            res=mySTL::distance(begin(),end());//迭代器函数
             return res;
         }
 
@@ -126,7 +151,7 @@ class list{
         }
 
         void push_back(const T& x){
-            insert(end(),x);//在
+            insert(end(),x);
         }
 
         void push_front(const T& x){
@@ -188,8 +213,8 @@ class list{
         }
 
         iterator erase(iterator position){
-            linktype next_node=linktype(position.node->next);//创建一个指针指向下一个节点
-            linktype prev_node=linktype(position.node->prev);
+            linktype next_node=(position.node)->next;//创建一个指针指向下一个节点
+            linktype prev_node=(position.node)->prev;
             prev_node->next=next_node;
             next_node->prev=prev_node;
             destroynode(position.node);
@@ -201,7 +226,7 @@ class list{
             return list_allocator::allocate();
         }
 
-        void release_node(void p){//释放空间
+        void release_node(void* p){//释放空间
             list_allocator::deallocate(p);
         }
 
@@ -217,14 +242,99 @@ class list{
             release_node(p);
         }
 
-        //iterator是有附加功能的*p,因此*iterator相当于*p,即对象本神,在这里是节点本身
+        //iterator是有附加功能的*p,因此*iterator相当于p,即迭代器本身
         void transfer(iterator position,iterator __first, iterator __last){
-            //将[first,last)的元素插队到position,即输出:[fist,last-1] position
-            if(__last!=position){//因为要搬到position之前,如果last==position,说明不用搬
-                (*(linktype( (*__last.node).prev ))).next=position.node;
-                (*position.node)
+            //将[first,last)的元素插队到position,即
+            //输入:[first,last),x,x,x,x,position
+            //输出:x,x,x,x,[fist,last-1] position
+            //*(__first.node)->prev;//运算顺序:  . -> *
+            //(*__first.node).prev;//运算顺序:  . * .
 
+            iterator first_prev=linktype((*__first.node).prev);//important:.(成员选择)的优先级高于*
+            iterator position_prev=linktype((*position.node).prev);
+            if(__last!=position){//因为要搬到position之前,如果last==position,说明不用搬
+                (*position_prev.node).next=__first.node;//连接position_prev-first
+                (*__first.node).prev=position_prev.node;
+                //(*__first.node).prev=&(*position_prev.node);//也可以这样
+                //(*__first.node).prev是一个指针,position_prev.node是一个指针
+                //  因此右边应该是一个地址或者一个指针,而*position_prev.node是一个对象,
+                //  因此右边需要取地址,或者将右边包装成指针
+
+                (*position.node).prev=(*__last.node).prev;//处理last_prev-position
+                (*(*__last.node).prev).next=position.node;
+                
+                
+                (*first_prev.node).next=__last.node;//连接first_prev-last
+                (*__last.node).prev=first_prev.node;
             }
+        }
+    public:
+        bool operator==(list<T> &rhs){
+            return rhs.node==(*this).node;
+        }
+        //四个应用函数 splice,merge,reverse,sort
+        //splice:链表的拼接,不要求链表有序
+        void splice (iterator position,list& x){
+            //将链表x连接到position处
+            if(x==*this) return;//x不能是本链表
+            if(!x.empty()){
+                transfer(position,x.begin(),x.end());
+            }
+        }
+
+        void splice(iterator position,list&,iterator i){
+            //在原链表中,将i所指元素结合于position所指位置之前
+            iterator j=i;
+            ++j;
+            if(i==position||j==position) return;//i==position不用接合;如果i已经在position前面,也不用接合
+            transfer(position,i,j);
+        }
+
+        void splice(iterator position,list&,iterator first,iterator last){
+            //在原链表中,将[fist,last)所指元素结合于position所指位置之前
+            //没有对position位置进行判断,可能position在first和last之间
+            if(first!=last){
+                transfer(position,first,last);
+            }
+        }
+
+        //merge-->有序链表的拼接,要求链表有序
+        void merge(list& x){
+            //两个有序链表的融合
+            iterator this_begin=begin(),this_end=end();//隐含前提是this链表已经进行了排序
+            iterator x_begin=x.begin(),x_end=x.end();
+            while(this_begin!=this_end&&x_begin!=x_end){
+                if(*this_begin<*x_begin){
+                    ++this_begin;
+                }
+                else{
+                    iterator node_to_merge=x_begin;
+                    ++x_begin;
+                    transfer(this_begin,node_to_merge,x_begin);
+                }
+            }
+            if(x_begin!=x_end)//另一条链表上还有元素
+                transfer(this_end,x_begin,x_end);
+        }
+        
+        void reverse(){//有bug
+            //链表反转 2,4,6,10->10,6,4,2
+            if(node->next==node||node->next->next==node) return;//size=0或1,用size()==0||size()==1比较慢
+
+            iterator first=begin();//不断把最后一个元素插入到cur前面,直到cur->next==end
+            ++first;
+            while(first!=end()){
+                iterator old=first;
+                ++first;
+                transfer(begin(),old,first);
+            }
+        }
+
+        void sort(){
+            if(node->next==node||node->next->next==node) return;//size=0或1,用size()==0||size()==1比较慢
+
+            //快排迭代版
+
         }
 };
 }//namespace mySTL;
