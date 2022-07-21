@@ -11,8 +11,8 @@ using namespace std;
 #   define __THROW_BAD_ALLOC std::cerr<<"oom!"<<std::endl; exit(1);
 #endif
 namespace mySTL{
-
-    
+typedef LV2_alloc<true,0>   pool_alloc;
+typedef LV1_alloc<0>        malloc_alloc;//改个好记的名字
 //*******************************************1.包装
 template<class T,class Alloc>//T是数据类型,Alloc是分配一个T所使用的空间分配算法
 class Mysimple_alloc{//这个类只是转调用
@@ -107,7 +107,7 @@ void* LV1_alloc<inst>::oom_realloc(void *p,size_t n){
     
 }
 
-typedef LV1_alloc<0> malloc_alloc;//改个好记的名字
+
 
 //void (*old)()=(*set_malloc_handler)(钦定的获取空间函数);
 
@@ -177,8 +177,13 @@ LV2_alloc<threads, inst>::free_list[__NFREELISTS]=
 template<bool threads,int inst>
 void* LV2_alloc<threads,inst>::allocate(size_t n){
 //1.大于128的内存空间由LV1配置器处理
-    if(n>__MAX_BYTES)
+    if(n>__MAX_BYTES){
+        //obj* result=(obj*)malloc_alloc::allocate(n);
+        //std::cout<<"Allocator: 1.allocate an a space with size:"<<n<<" bytes"<<endl;
+        //std::cout<<"Allocator: 2.allocate an a space with address: 0x"<< std::hex <<result<<endl;
         return malloc_alloc::allocate(n);
+    }
+        
 //2.先上调到8的倍数+找到对应的链表数组的下标->(freelist_idx)
     //一个指向obj* volatile的指针,obj* volatile是free_list元素的类型
     //此处 (obj* volatile) *position,相当于 (int) *p
@@ -186,30 +191,37 @@ void* LV2_alloc<threads,inst>::allocate(size_t n){
     obj* result;
     //相当于p=v+3;
     position = free_list + freelist_idx(n);
+    //important:在构造l1的时候发现free_list可以无穷展开，
+    //说明，deallocate的时候,让某个节点自己指向了自己,
     
 //3.确保有足够的空间
     result = *position;
     if(0==result){
         void* r=refill(round_up(n));//获取空间,并分配一个给r
+        //std::cout<<"Allocator: 1.allocate an a space with size:"<<n<<" bytes"<<endl;
+        //std::cout<<"Allocator: 2.allocate an a space with address: 0x"<< std::hex <<r<<endl;
         return r;
     }
 //4.从该数组对应下标所指的链表中获取一个节点
     //相当于free_list[freelist_idx(n)]=free_list[freelist_idx(n)]->free_list_link
     *position=result->free_list_link;//指向下一个节点
+    //std::cout<<"Allocator: 1.allocate an a space with size:"<<n<<" bytes"<<endl;
+    //std::cout<<"Allocator: 2.allocate an a space with address: 0x"<< std::hex <<result<<endl;
     return result;
 }
 
 template<bool threads,int inst>
 void LV2_alloc<threads,inst>::deallocate(void *p,size_t n){
     //1.判断是否>128,是则用free
+    //std::cout<<"Allocator:Reclaim a space with a memory size:"<<n<<endl;
+    //std::cout<<"Allocator:Reclaim a space with adress:"<<p<<endl;
     if(n>128){
         malloc_alloc::deallocate(p,n);
         return;
     } 
     //2.找到应该放置的位置
     obj* q=(obj*)p;
-    obj* volatile *position 
-                = free_list + freelist_idx(n);
+    obj* volatile *position= free_list + freelist_idx(n);
     //3.放回free_list中(链表节点插入)
     q->free_list_link=*position;//先让插入节点q指向插入点下一个指针
     *position=q;//再让前置节点指向插入节点q
@@ -320,7 +332,7 @@ char* LV2_alloc<threads,inst>::chunk_alloc(size_t size,int &nobj){
 
 }
 
-typedef LV2_alloc<true,0> pool_alloc;
+
 //*******************************************4.内存的基本处理工具
 //4.1--uninitialized_fill_n:填充n个值为x的数据在first开始的位置,返回结束位置
 template<class ForwardIterator,class Size,class T,class T1>

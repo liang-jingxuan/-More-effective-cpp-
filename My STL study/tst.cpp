@@ -77,22 +77,38 @@ int Myvectortst(){
 }
 
 int Mylisttest(){
+    cout<<"*************************start testing mylist********************"<<endl;;
     //1.构造测试
     mySTL::list<int> mlist;
-    //2.pushback,pushfront测试
+    //2.pushback,pushfront测试 popback,popfront 测试
     for(int ix=5;ix<10;++ix)
         mlist.push_back(ix);
     for(auto num:mlist){
         cout<<num<<',';
     }
+    mlist.print();
     cout<<"\n";
     for(int ix=4;ix>-3;--ix)
         mlist.push_front(ix);
     for(auto num:mlist){
         cout<<num<<',';
     }
+    mlist.print();
+
+    mlist.pop_back(); 
+    cout<<"\n pop the last number:";
+        for(auto num:mlist){
+        cout<<num<<',';
+    }
+    
+    mlist.pop_front();
+    cout<<"\n pop the first number:";
+        for(auto num:mlist){
+        cout<<num<<',';
+    }
+
+    mlist.print();
     //3.back,front测试
-    cout<<"\n";
     cout<<"\nThe last number is "<<mlist.back().data<<endl;
     cout<<"The first number is "<<mlist.front().data<<endl;
     //4.iterator测试
@@ -107,8 +123,12 @@ int Mylisttest(){
     //5.测试splice
     cout<<"\nsplice test:"<<endl;
     cout<<"\n1.splice other list test:"<<endl;
-    mySTL::list<int> l1,l2;
-    l1.push_back(15);l2.push_back(56);
+    mySTL::list<int> l1;
+    //前面pop_front释放了一些空间还给内存链表，所以l1可能会得到这个空间，由于list内装的是int，没有析构函数
+    //，所以得到的空间的值可能是之前pop的值
+    l1.push_back(15);
+    mySTL::list<int> l2;
+    l2.push_back(56);
     mlist.splice(mlist.begin(),l1);
     mlist.splice(mlist.end(),l2);
     for(pl=mlist.begin();pl!=mlist.end();++pl)
@@ -117,9 +137,16 @@ int Mylisttest(){
     mlist.splice(mlist.begin()+6,l1,mlist.begin()+7,mlist.end());
         for(pl=mlist.begin();pl!=mlist.end();++pl)
         cout<<*pl<<',';
-
-    cout<<"\nreverse test:"<<endl;
+    //6. reverse 测试
+    cout<<"\n\nreverse test:"<<endl;
     mlist.reverse();
+    for(pl=mlist.begin();pl!=mlist.end();++pl)
+        cout<<*pl<<',';
+    
+    //7.sort测试
+    cout<<"\n sort test:"<<endl;
+    mlist.sort();
+    cout<<"\nthe sorted list:"<<endl;
     for(pl=mlist.begin();pl!=mlist.end();++pl)
         cout<<*pl<<',';
     return 1;

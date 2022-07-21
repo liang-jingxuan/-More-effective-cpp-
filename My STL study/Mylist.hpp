@@ -105,7 +105,7 @@ class list{
         typedef __listnode<T> list_node;//节点,不向外开
     public:
         typedef list_node* linktype;//指向节点的指针 linktype=__listnode<T>*
-        typedef Mysimple_alloc<list_node,Alloc> list_allocator;//第一个参数是list_node
+        typedef Mysimple_alloc<list_node,Alloc> node_allocator;//第一个参数是list_node
                                                                 //是因为这个容器装的是一个个链表节点.
 
         typedef __list_iterator<T,T&,T*>                iterator;//iterator是一个包装着指向节点的指针的结构体(类)
@@ -145,7 +145,7 @@ class list{
         }
 
         //构造和析构
-        list():node(list_allocator::allocate()){
+        list():node(node_allocator::allocate()){
             node->prev=node;
             node->next=node;
         }
@@ -158,11 +158,11 @@ class list{
             insert(node->next,x);
         }
 
-        void pop_back(){
+        void pop_front(){
             erase(begin());
         }
 
-        void pop_front(){
+        void pop_back(){
             erase(--end());
         }
 
@@ -218,20 +218,21 @@ class list{
             prev_node->next=next_node;
             next_node->prev=prev_node;
             destroynode(position.node);
-            release_node(position.node);
+            //release_node(position.node);//important:destroynode已经包含了析构+释放内存,不应该再一次释放内存
+            //这一次释放一个已经释放的内存导致了内存池出现了循环链表.
             return iterator(next_node);            
         }
     protected:
         linktype get_node(){//配置空间
-            return list_allocator::allocate();
+            return node_allocator::allocate();
         }
 
         void release_node(void* p){//释放空间
-            list_allocator::deallocate(p);
+            node_allocator::deallocate((list_node*)p);
         }
 
         linktype creatnode(const T& x){//配置空间+构造
-            linktype p=list_allocator::allocate();
+            linktype p=node_allocator::allocate();
             construct(&p->data,x);//为什么只构造数据?
                                 //因为原生指针没有构造和析构一说
             return p;
@@ -268,6 +269,8 @@ class list{
                 (*__last.node).prev=first_prev.node;
             }
         }
+
+
     public:
         bool operator==(list<T> &rhs){
             return rhs.node==(*this).node;
@@ -290,7 +293,7 @@ class list{
             transfer(position,i,j);
         }
 
-        void splice(iterator position,list&,iterator first,iterator last){
+        void splice(iterator position,list<T,Alloc>&,iterator first,iterator last){
             //在原链表中,将[fist,last)所指元素结合于position所指位置之前
             //没有对position位置进行判断,可能position在first和last之间
             if(first!=last){
@@ -299,7 +302,7 @@ class list{
         }
 
         //merge-->有序链表的拼接,要求链表有序
-        void merge(list& x){
+        void merge(list<T,Alloc>& x){
             //两个有序链表的融合
             iterator this_begin=begin(),this_end=end();//隐含前提是this链表已经进行了排序
             iterator x_begin=x.begin(),x_end=x.end();
@@ -338,7 +341,74 @@ class list{
             if(node->next==node||node->next->next==node) return;//size=0或1,用size()==0||size()==1比较慢
             //很适合用归并排序
             //5个元素以内用BUBLE_Sort
-            while(!empty())
+            list<list<T>,Alloc> carry;
+            const int block_size=5;//子链表元素<=5的时候用插入排序
+            //1.分组
+            while(!empty()){
+                list<T,Alloc> tmp_list;
+                if(size()>=block_size)
+                    tmp_list.splice(tmp_list.begin(),tmp_list,begin(),begin()+5);
+                else
+                    tmp_list.splice(tmp_list.begin(),tmp_list,begin(),end());
+                carry.push_back(tmp_list);
+            }
+            //2.对每个子链表进行插入排序
+            int numofsublist=carry.size();
+            for(int ix=0;ix<numofsublist;ix++){
+                typename list<list<T>,node_allocator>::iterator CarryIter=carry.begin()+ix;
+                //int time=(*CarryIter).size();//待排元素数量
+                for(iterator first=++(*CarryIter).begin();first!=(*CarryIter).end();++first){
+                    //first指向待排元素
+                    iterator p=(*CarryIter).begin();
+                    while(p!=first&&*first>=*p) ++p;
+                    //节点交换:麻烦,要写一个swap函数.  值交换:会使得其他迭代器的值改变
+                    if(p.node!=first.node)
+                        (*CarryIter).swap(p,first);
+                }
+                cout<<"\nlist "<<ix<<" result:";
+                for(iterator pl=(*CarryIter).begin();pl!=(*CarryIter).end();++pl)
+                    cout<<*pl<<',';
+            }
+            //3.现在每个子链表都是排序好的,调用merge函数注意合并到(*this)
+            while(!carry.empty()){
+                typename list<list<T>>::iterator mergelist=carry.begin();
+                (*this).merge(*mergelist);
+                carry.pop_front();
+                //手动pop_front
+                //(*tmp.node).prev->next=(*tmp.node).next;
+                //(*tmp.node).next->prev=(*tmp.node).prev;
+                //destroy(tmp.node);
+                //node_allocator::deallocate(*tmp.node);
+                
+            }   
+
+        }
+    void print(){
+        iterator p=begin();
+        int ix=1;
+        while(p!=end()){
+            cout<<"The "<< ix <<" node's adress="<<&(*p.node)<<endl;
+            cout<<"The "<< ix <<" node's next address="<<p.node->next<<endl;
+            cout<<"The "<< ix <<" node's previous address="<<p.node->prev<<endl;
+            cout<<"The "<< ix <<" node's value="<<*p<<endl;
+            cout<<"\n";
+            ++ix;
+            ++p;
+        }
+    }
+
+    protected:
+        void swap(iterator node1,iterator node2){
+            //内部函数,不对用户开放,开发人员要注意这个函数只能用在链表内部的节点交换
+            //1.记录node2后面的一个节点node2_next,将来会把node1插入到这个节点之前
+            iterator node_next=node2.node;
+            ++node_next;
+            //2.将node2搬移到node1前
+            (*this).transfer(node1,node2,node_next);
+            //3.将node1插入到node2_nextqian
+            node_next=node1.node;
+            ++node_next;
+            (*this).transfer(node_next,node1,node_next);
         }
 };
 }//namespace mySTL;
