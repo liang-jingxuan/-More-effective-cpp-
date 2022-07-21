@@ -159,6 +159,8 @@ class deque {
         typedef Mysimple_alloc<value_type,Alloc>    node_allocate;//配置一个存储区的空间
         typedef Mysimple_alloc<pointer,Alloc>       map_allocate;//配置一个T**空间
     protected:
+    //important:start和finish只用set_node来操作,因为很多重复的代码,而且每个iterator里有4个指针要设置
+    //      分别是node,first,last,cur
         iterator start;
         iterator finish;
 
@@ -204,6 +206,7 @@ class deque {
         }
 
     protected:
+        //初始化的时候采用
         void fill_initialize(size_type num, const value_type &val){
             //1.创建num个空间,每个空间的大小都是buffer_size()
             create_map_and_nodes(num);
@@ -221,11 +224,11 @@ class deque {
             size_type num_nodes = elem_num/buffer_size() +1;
 
             //2.确定map(T**)的个数,最少8个,最多num_nodes+2ge
-            max_size = initial_map_size()<num_nodes+2?num_nodes+2:initial_map_size();//有多少个T**
-            map = map_allocate::allocate(max_size);//构造足够存放max_size个T**数据空间
+            map_size = initial_map_size()<num_nodes+2?num_nodes+2:initial_map_size();//有多少个T**
+            map = map_allocate::allocate(map_size);//构造足够存放map_size个T**数据空间
 
             //3.调整start和finish
-            map_pointer nstart = map + (max_size - num_nodes) /2;//存放该lem_num个数据将占用nstart~nfinish所指的T**
+            map_pointer nstart = map + (map_size - num_nodes) /2;//存放该lem_num个数据将占用nstart~nfinish所指的T**
             map_pointer nfinish = nstart + num_nodes-1;
 
             map_pointer cur;//用来遍历map的上的每个T**,并让每个T**指向一个存储区
@@ -250,14 +253,58 @@ class deque {
         finish.cur= finish.first;
     }
 
-    void reserve_map_at_back(size_type nodes_to_add = 1){
-        if(nodes_to_add + 1 > map_size - (finish.node-map))//一次增加至少2个新的存储区,右边表示finish右侧可用的存储区个数
-                                            //如果右侧可用存储区个数少于需要增加的存储区数量
+    void reserve_map_at_back(size_type nodes_to_add = 1){//nodes_to_add表示需要增加的节点个数
+        if(nodes_to_add + 1 > map_size - (finish.node-map)){
+            //一次增加至少2个新的存储区,右边表示finish右侧可用的存储区个数
+            //如果右侧可用存储区个数少于需要增加的存储区数量
+            //意味着:"--如果不指定nodes_to_add--"那么finish右边始终至少有2个存储区
+            //原因：push_back的时候finish在存储区末尾的时候,会检查finish右边剩余存储区
+            //      判断语句左边nodes_to_add(默认为1)+1>{0,1}的时候就分配空间，
+            //      所以右边始终至少有2个存储区。
+            //证明：因为nodes_to_add
             reallocate_map(nodes_to_add,false);
+            }
     }
 
     void reallocate_map(size_type nodes_to_add, bool add_at_front){
-        
+        //增加nodes_to_add个缓存区,
+        size_type old_num_nodes = finish.node - start.node + 1;//左闭右闭所以+1,占用的存储区
+        size_type new_num_nodes = old_num_nodes + nodes_to_add;//新增存储区后占用的存储区
+
+        map_pointer new_nstart;
+        if (map_size > 2 * new_num_nodes) {
+            //情况一：现有的存储区个数足以存储2倍于已用的存储区个数,进行指针的重定向
+            //1.让被占用的map尽量靠中间:总共需要占用new_num_nodes个存储区,共有map_size个存储区
+            new_nstart= map + (map_size-new_num_nodes)/2//(map_size-new_num_nodes)/2表示让前后未被使用
+                            + (add_at_front?nodes_to_add:0);//的存储区数量均匀
+                //(add_at_front?nodes_to_add:0)是因为如果是push_front说明左方需要更多空间,所以要右移一些
+            if(new_nstart< start.node)//观察是否会被覆盖(类似vector的erase)
+                copy(start.node,finish.node+1,new_nstart);//前移,不会被覆盖
+            else
+                copy_backward(start.node,finish.node+1,new_nstart+old_num_nodes);
+                //...start.node * * * * new_nstart * finish.node ...，如果用copy那么有可能
+                // [new_nstart~finish.node]的内容被覆盖
+        }
+        else{
+            //情况二：需要申请新的map,并进行迁移
+            //1.申请了新的节点后总大小
+            size_type new_map_size = map_size + (map_size<nodes_to_add?nodes_to_add:map_size) + 2;
+            //map_size+nodes_to_add就够用了,但是为了避免多次配置新空间,如果发现map_size>=nodes_to_add
+            //就多申请一些,所有有了 (map_size<nodes_to_add?nodes_to_add:map_size) + 2
+            //important:申请空间的时候考虑多申请一些
+            map_pointer new_map= map_allocate::allocate(new_map_size);
+            new_nstart = new_map map + (new_map_size-new_num_nodes)/2
+                                    + (add_at_front?nodes_to_add:0);
+            //不用担心覆盖问题
+            copy(first.node,finish.node+1,new_nstart);
+            map_allocate::deallocate(map,map_size);
+
+            map=new_map;
+            map_size=new_map_size;
+        }
+        //start和finish只用set_node处理
+        start.set_node(new_nstart);
+        finish.set_node(new_nstart+old_num_nodes-1);
     }
 };
 }
