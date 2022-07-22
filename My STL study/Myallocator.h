@@ -11,6 +11,8 @@ using namespace std;
 #   define __THROW_BAD_ALLOC std::cerr<<"oom!"<<std::endl; exit(1);
 #endif
 namespace mySTL{
+template<int inst>class LV1_alloc;//声明
+template<bool threads,int inst> class LV2_alloc;//声明
 typedef LV2_alloc<true,0>   pool_alloc;
 typedef LV1_alloc<0>        malloc_alloc;//改个好记的名字
 //*******************************************1.包装
@@ -334,7 +336,8 @@ char* LV2_alloc<threads,inst>::chunk_alloc(size_t size,int &nobj){
 
 
 //*******************************************4.内存的基本处理工具
-//4.1--uninitialized_fill_n:填充n个值为x的数据在first开始的位置,返回结束位置
+//4.1--uninitialized_fill_n:
+//功能:填充n个值为x的数据在first开始的位置,返回结束位置
 template<class ForwardIterator,class Size,class T,class T1>
 ForwardIterator 
 __uninitialized_fill_n(ForwardIterator ,Size ,const T& ,T1*);//声明
@@ -376,37 +379,44 @@ __uninitialized_fill_n_aux(ForwardIterator first,Size n,const T& x,__Mytrue_type
     return fill_n(first,n,x);//因数据类型是原生类型，有高效的填充算法
 }
 
-//4.2**uninitialized_copy  把first到last之间的对赋值到position位置
+//4.2**uninitialized_copy  
+//功能:把first到last之间的对复制到position位置
 //输入: 1.起始位置  2.结束为止  3.目标位置
 //输出: 复制后的结尾位置
+/********************************声明*************************/
 template<class InputIterator,class ForwardIterator>
 inline ForwardIterator
-__uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator result,__Myfalse_type);
+__uninitialized_copy_aux(InputIterator first,InputIterator last,
+                            ForwardIterator result,__Myfalse_type);
 
 template<class InputIterator,class ForwardIterator>
 inline ForwardIterator
-__uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator result,__Mytrue_type);
+__uninitialized_copy_aux(InputIterator first,InputIterator last,
+                            ForwardIterator result,__Mytrue_type);
 
 template<class InputIterator,class ForwardIterator,class T>
 inline ForwardIterator
-__uninitialized_copy(InputIterator first,InputIterator last,ForwardIterator result,T*);
-
+__uninitialized_copy(InputIterator first,InputIterator last,
+                        ForwardIterator result,T*);
+/********************************实现*************************/
 template<class InputIterator,class ForwardIterator>
 inline ForwardIterator
 uninitialized_copy(InputIterator first,InputIterator last,ForwardIterator result){
-    return __uninitialized_copy(first,last,result,value_type(result));
+    return __uninitialized_copy(first , last , result , value_type(result));
 }
 
 template<class InputIterator,class ForwardIterator,class T>
 inline ForwardIterator
-__uninitialized_copy(InputIterator first,InputIterator last,ForwardIterator result,T*){
+__uninitialized_copy(InputIterator first , InputIterator last,
+                        ForwardIterator result , T*){
     typedef typename __Mytype_traits<T>::is_POD_type is_POD_type;
     return __uninitialized_copy_aux(first,last,result,is_POD_type());
 }
 
 template<class InputIterator,class ForwardIterator>
 inline ForwardIterator
-__uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator result,__Myfalse_type){
+__uninitialized_copy_aux(InputIterator first, InputIterator last,
+                            ForwardIterator result , __Myfalse_type){
     ForwardIterator cur=result;
     for(;first!=last;++first,++cur){
         construct(&*cur,*first);
@@ -415,9 +425,39 @@ __uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator 
 }
 template<class InputIterator,class ForwardIterator>
 inline ForwardIterator
-__uninitialized_copy_aux(InputIterator first,InputIterator last,ForwardIterator result,__Mytrue_type){
+__uninitialized_copy_aux(InputIterator first , InputIterator last,
+                            ForwardIterator result , __Mytrue_type){
     return copy(first,last,result);
 }
+
 //4.3 uninitialized_fill
+//作用:用val来填充[First,Last)
+
+template<class InputIterator, class T>
+inline void 
+uninitialized_fill(InputIterator first,InputIterator last, const T& val){
+    typedef typename __Mytype_traits<T>::is_POD_type is_POD_type;
+    __uninitialized_fill_aux(first,last,val,is_POD_type());
+}
+
+template<class ForwardIterator, class T>
+inline void 
+__uninitialized_fill_aux(ForwardIterator first,
+                            ForwardIterator last, const T& val,__Myfalse_type){
+    ForwardIterator cur = first;//先用着
+    for( ; cur!=last ; ++cur){
+        construct(&*cur,val);
+    }
+}
+
+template<class ForwardIterator, class T>
+inline void 
+__uninitialized_fill_aux(ForwardIterator first,
+                            ForwardIterator last, const T& val,__Mytrue_type){
+    for( ; first!=last ; ++first){
+        *first = val;
+    }
+}
+
 }//namespace mySTL
 #endif

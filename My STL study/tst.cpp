@@ -1,7 +1,10 @@
 #include <iostream>
 #include"Myvector.h"
 #include "Mylist.hpp"
-using namespace std;
+#include"Mydeque.hpp"
+using namespace mySTL;
+
+
 int Myvectortst(){
 
     //1.Myallocator 文件测试:OK
@@ -152,8 +155,15 @@ int Mylisttest(){
     return 1;
 }
 
+int Mydequetest(){
+    deque<int> mydq(5,0);
+    
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
+}
 int main(){
     //Myvectortst();
-    Mylisttest();
+    //Mylisttest();
+    Mydequetest();
     return 1;
 }

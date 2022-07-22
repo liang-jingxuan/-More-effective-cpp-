@@ -11,10 +11,15 @@
 // int* p1=a1,*p2=a2,*p3=a3;                                              (iterator)  
 // int**  node=&p1;  ++node则跳到node=&p2, 再次++node则跳到node=&p3         (node)
 //但是node不知道总共有多少个指针,因此需要map_size来确保node不会指向p3之后的指针
-const size_t BufSz = 512;
 
 using namespace mySTL;
 namespace mySTL{
+    //全局
+const size_t BufSz = 512;
+const size_t InitialMapSize=8;//默认申请的存储区个数
+inline size_t __deque_buf_size(size_t n,size_t sz){
+        return  n!=0?n:(sz<BufSz?size_t(BufSz/sz):size_t(1));//如果sz>=256,则一个存储区存一个数据,相当于链表了
+}
 
 //先实现迭代器,因为deque内部维护了两个迭代器。
 //important：vector，list和deque都先实现了迭代器再写容器，但是不代表写代码的时候应该先写迭代器再写类。
@@ -24,7 +29,9 @@ template<class T,class Ref,class Pointer,size_t BufSz>
 struct __deque_iterator{
     typedef __deque_iterator<T,T&,T*,BufSz> iterator;
     typedef __deque_iterator<T,const T&,const T*,BufSz> const_iterator;
-    static size_t buffer_size(){return __deque_fub_size(BufSz,sizeof(T));}//一个存储区能放的元素个数
+
+    
+    static size_t buffer_size();//一个存储区能放的元素个数
 
     typedef random_access_iterator_tag  iterator_category;
     typedef T                           value_type;
@@ -41,15 +48,13 @@ struct __deque_iterator{
     T*              last;       //指向存储区的末尾
     map_pointer     node;       //node指向一个存储区
 
-    inline size_t deque_buf_size(size_t n,size_t sz){
-        return  n!=0?n:(sz<512?size_t(512/sz):size_t(1));//如果sz>=256,则一个存储区存一个数据,相当于链表了
-    }
+
 
     void set_node(map_pointer new_node){//存储区选择,让迭代器指向指定的存储区
     //set_node保证跳到正确的存储区,并让first,last指向正确的范围
         node=new_node;
         first=*new_node;//operator*会返回new_node的cur指向的元素
-        last=first + difference_type(buffer_size);//last指向的空间不存储元素
+        last=first + difference_type(buffer_size());//last指向的空间不存储元素
     }
 
     reference operator*()const{return *cur;}
@@ -57,19 +62,18 @@ struct __deque_iterator{
     pointer operator->()const{return &(operator*());}
 
     difference_type operator-(const self& rhs){
-        return difference_type(buffer_size * (node-rhs.node-1))//被填满的存储器
+        return difference_type(buffer_size() * (node-rhs.node-1))//被填满的存储器
                 +(cur-first)+(rhs.last-rhs.cur);//两边未满的存储区 假设rhs在左,
     }
 
     self& operator++(){//++i
         ++cur;//右移
-        //1.存储区未满
-        if(cur!=last){
-            return *this;
+        //1.存储区已满
+        if(cur==last){
+            set_node(node+1);//切换存储区
+            cur=first;//指向存储区第一个元素
         }
-        //2.存储区已满
-        set_node(node+1);//切换存储区
-        cur=first;//指向存储区第一个元素
+        return *this;
     }
 
     self operator++(int){//i++;
@@ -78,15 +82,14 @@ struct __deque_iterator{
         return tmp;
     }
     
-        self& operator++(){//--i
-        //1.cur不在存储区开端
-        if(cur!=first){
-            --cur;
-            return *this;
+    self& operator--(){//--i
+        //1.cur是最左端
+        if(cur==first){
+            set_node(node-1);//切换存储区
+            cur=last;//指向存储区末端元素,开区间
         }
-        //2.cur在存储区开端
-        set_node(node-1);//切换存储区
-        cur=last;//指向存储区末端元素
+        --cur;//不管是不是最左端元素都要--
+        return *this;
     }
 
     self operator--(int){//i--;
@@ -150,11 +153,14 @@ struct __deque_iterator{
     }
 };
 
+template<class T,class Ref,class Pointer,size_t BufSz>
+size_t __deque_iterator<T,Ref,Pointer,BufSz>::buffer_size()
+{return __deque_buf_size(BufSz,sizeof(T));}
 
 
 //*******************************deque的实现
 
-template<class T,class Alloc= pool_alloc>
+template<class T,class Alloc= pool_alloc,size_t BufSz = 0>
 class deque {
     public:
         typedef T               value_type;
@@ -163,22 +169,25 @@ class deque {
         typedef size_t          size_type;
         typedef ptrdiff_t       difference_type;
 
-        typedef __deque_iterator<T,T&,T*,BufSz>    iterator;
-    
+        typedef __deque_iterator<T,T&,T*, BufSz>    iterator;
     protected:
         typedef pointer*        map_pointer;
-        typedef Mysimple_alloc<value_type,Alloc>    node_allocate;//配置一个存储区的空间
-        typedef Mysimple_alloc<pointer,Alloc>       map_allocate;//配置一个T**空间
+        typedef Mysimple_alloc<value_type,Alloc>    node_allocate;
+                                    //node_allocate配置一个数据类型T的的存储空间
+        typedef Mysimple_alloc<pointer,Alloc>       map_allocate;
+                                    ////配置一个指向存储区的指针的空间
     protected:
     //important:start和finish只用set_node来操作,因为很多重复的代码,而且每个iterator里有4个指针要设置
     //      分别是node,first,last,cur
-        iterator start;
+        iterator start;//struct{T*,T*,T*,T**}类型
         iterator finish;//逐一要左闭右开
-
-        map_pointer map;
+        
+        map_pointer map;//T**类型
 
         size_type   map_size;
     
+    static size_t buffer_size(){return __deque_buf_size(BufSz,sizeof(T));};//一个存储区能放的元素个数
+
     public://用户接口
         iterator begin(){return start;}
         iterator end(){return finish;}
@@ -261,10 +270,113 @@ class deque {
         void clear(){
             //析构所有元素,释放所有空间,只留一个
             if(empty()) return;
-            //需要注意的是:clear之后应让start处在map中间位置
-
-            // finish.cur=finish.first;
+            //1.先处理必然是被填满了的存储区,即(start,finish)
+            map_pointer to_del=start.node+1;//to_del是一个指向存储区的节点,*to_del表示节点
+            for(;to_del<finish.node;++to_del){
+                destroy(*to_del,*to_del + buffer_size());
+                map_allocate::deallocate(*to_del,buffer_size());
+            }
+            //原创代码,我把所有元素析构,并释放了所有空间,然后让start居中
+            //          STL代码:析构所有元素,释放start以外的空间,start保持不变
+            //处理start和finish
+            if(start!=finish){
+                //start和finish不同存储区,析构并释放finish
+                destroy(finish.first,finish.cur);
+                node_allocate::deallocate(finish.first,buffer_size());
+                //析构start,但保留
+                destroy(start.cur,start.last);
+                node_allocate::deallocate(start.first,buffer_size());
+                
+            }
+            else{
+                //start和finish在相同存储区
+                destroy(start.cur,finish.cur);
+                node_allocate::deallocate(start.first,buffer_size());
+            }
+            start = map + map_size/2;//让start居中
+            finish=start;
         }
+
+        iterator erase(iterator pos){//移除position,返回移除后补上的元素
+            if(pos==finish) return pos;
+            iterator _destination=pos+1;
+            size_type num_befor_pos = pos - start;
+            //start * * pos , _des * * *,num_befor_pos =3;
+            //1.如果pos右边的元素较少,左边较多,则用copy从前往后复制
+            if(num_befor_pos > size()-num_befor_pos){
+                // copy [_First, _Last) to [_Dest, ...)
+                copy(_destination , finish , pos);
+                pop_back();
+            }
+            else{
+            //2.如果pos左边的元素较少,右边较多,则用copy_backward从后往前复制,避免覆盖
+                // (copy_backward)copy [_First, _Last) backwards to [..., _Dest)
+                copy_backward(start , pos , _destination);
+                pop_front();
+            }
+            return start + num_befor_pos;
+        }
+
+        iterator erase(iterator erase_left,iterator erase_right){
+            if(erase_left==start&&erase_right==finish){ 
+                clear();
+                return finish;
+            }
+            //将[erase_left,erase_right)的元素擦除
+            size_type left_sz,right_sz,num_to_erase;//消除区间两边的大小
+            num_to_erase = erase_right - erase_left;
+            left_sz  = erase_left -  start;
+            right_sz = finish     -  erase_right;
+            //如果left_sz > right_sz则将消除区右边的移动到erase_left开始的地方
+            if(left_sz > right_sz){
+                // (copy_backward)copy [_First, _Last) backwards to [..., _Dest)
+                copy_backward(start , erase_left , erase_right);
+                iterator new_start = start + num_to_erase;//记录新起点,新起点前的元素都要被析构
+                destroy(start , new_start);//析构num_to_erase个元素,因为消除了num_to_erase个元素
+                //释放new_start左方所有内存
+                for(map_pointer cur = start.node;cur<new_start.node;++cur){
+                    node_allocate::deallocate(*cur,buffer_size());
+                }
+                start = new_start;
+            }
+            else{
+                // copy [_First, _Last) to [_Dest, ...)
+                copy(erase_right,finish,erase_left);
+                iterator new_finish = finish - num_to_erase;
+                destroy(new_finish,finish);
+                for(map_pointer cur=finish.node;cur>new_finish;--cur){
+                    node_allocate::deallocate(*cur,buffer_size());
+                }
+                finish=new_finish;
+            }
+            return start + left_sz;
+        }
+
+        iterator insert(iterator pos, const T& val){//原创代码
+            //作用在pos前面插入一个val
+            //思路:使用push_back或push_front插入一个任意的元素,然后复制元素,最后修改pos-1元素为val
+            //1.如果使用push_back,说明插入元素后右边需要搬移元素更少
+            size_type left_num_after = pos - start;
+            size_type right_num_after = finish - pos;
+            iterator new_pos;
+            if(right_num_after<left_num_after){
+                size_type num_to_move = right_num_after;
+                push_back(val);
+                new_pos = pos;//根据推演,发现push_back后新的插入点刚好是pos
+                copy_backward(pos , finish-1 , finish);
+                *new_pos=val;
+            }
+            else{
+            //2.如果使用push_front,说明插入元素后左边搬移元素更少
+                iterator num_to_move = left_num_after;
+                push_front(val);
+                new_pos = pos -1;
+                copy(start+1,pos,start);
+                *new_pos=val;
+            }
+            return new_pos;
+        }
+
     protected:
         //初始化的时候采用
         void fill_initialize(size_type num, const value_type &val){
@@ -294,8 +406,8 @@ class deque {
             map_pointer cur;//用来遍历map的上的每个T**,并让每个T**指向一个存储区
 
             for(cur=nstart;cur!=nfinish;++cur){
-                *cur=allocate_node();//分配存储区,并让T**指向存储区
-            }
+                *cur = allocate_node();//分配存储区,并让T**指向存储区
+            }//cur是
 
             start.set_node(nstart);//set_node保证跳到正确的存储区,并让first,last指向正确的范围
             finish.set_node(nfinish);
@@ -324,7 +436,6 @@ class deque {
     }
         
         
-
     void reserve_map_at_back(size_type nodes_to_add = 1){//nodes_to_add表示需要增加的节点个数
         if(nodes_to_add + 1 > map_size - (finish.node-map)){
             //一次增加至少2个新的存储区,右边表示finish右侧可用的存储区个数
@@ -336,6 +447,11 @@ class deque {
             //证明：因为nodes_to_add
             reallocate_map(nodes_to_add,false);
             }
+    }
+
+    void reverse_map_at_front(size_type nodes_to_add = 1){
+        if(nodes_to_add > start.node - map)
+            reallocate_map(nodes_to_add,true);
     }
 
     void reallocate_map(size_type nodes_to_add, bool add_at_front){
@@ -365,10 +481,10 @@ class deque {
             //就多申请一些,所有有了 (map_size<nodes_to_add?nodes_to_add:map_size) + 2
             //important:申请空间的时候考虑多申请一些
             map_pointer new_map= map_allocate::allocate(new_map_size);
-            new_nstart = new_map map + (new_map_size-new_num_nodes)/2
+            new_nstart = new_map + (new_map_size-new_num_nodes)/2
                                     + (add_at_front?nodes_to_add:0);
             //不用担心覆盖问题
-            copy(first.node,finish.node+1,new_nstart);
+            copy(start.node,finish.node+1,new_nstart);
             map_allocate::deallocate(map,map_size);
 
             map=new_map;
@@ -377,6 +493,15 @@ class deque {
         //start和finish只用set_node处理
         start.set_node(new_nstart);
         finish.set_node(new_nstart+old_num_nodes-1);
+    }
+
+    T* allocate_node(){
+        //返回一个存储区
+        return (T*)node_allocate::allocate(buffer_size());
+    }
+
+    size_type initial_map_size(){
+        return InitialMapSize;
     }
 };
 }
