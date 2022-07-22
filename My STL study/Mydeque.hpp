@@ -5,10 +5,21 @@
 #include "Myallocator.h"
 #include "Myconstructor.h"
 //notice:"原创代码"是没有按书本写的代码,可能有bug
+//        CTRL+F搜索  "important"查找重要信息
+//deque的中控器类似于 
+// int a1[8],a2[8],a3[8];
+// int* p1=a1,*p2=a2,*p3=a3;                                              (iterator)  
+// int**  node=&p1;  ++node则跳到node=&p2, 再次++node则跳到node=&p3         (node)
+//但是node不知道总共有多少个指针,因此需要map_size来确保node不会指向p3之后的指针
 const size_t BufSz = 512;
 
 using namespace mySTL;
 namespace mySTL{
+
+//先实现迭代器,因为deque内部维护了两个迭代器。
+//important：vector，list和deque都先实现了迭代器再写容器，但是不代表写代码的时候应该先写迭代器再写类。
+//  STL先实现迭代器再写容器是因为容器内部维护了至少一个迭代器，比如vector中的start和finish，list中的node；
+//  deque中的start，finish
 template<class T,class Ref,class Pointer,size_t BufSz>
 struct __deque_iterator{
     typedef __deque_iterator<T,T&,T*,BufSz> iterator;
@@ -38,7 +49,7 @@ struct __deque_iterator{
     //set_node保证跳到正确的存储区,并让first,last指向正确的范围
         node=new_node;
         first=*new_node;//operator*会返回new_node的cur指向的元素
-        last=first + difference_type(buffer_size);
+        last=first + difference_type(buffer_size);//last指向的空间不存储元素
     }
 
     reference operator*()const{return *cur;}
@@ -162,7 +173,7 @@ class deque {
     //important:start和finish只用set_node来操作,因为很多重复的代码,而且每个iterator里有4个指针要设置
     //      分别是node,first,last,cur
         iterator start;
-        iterator finish;
+        iterator finish;//逐一要左闭右开
 
         map_pointer map;
 
@@ -205,6 +216,55 @@ class deque {
             push_back_aux(x);
         }
 
+        void push_front(const T& val){
+            //判断是否需要切换存储区
+            if(start.cur!=start.first){
+                //不需要切换存储区
+                --start.cur;
+                construct(start.cur,val);
+                return;
+            }
+            push_front_aux(val);//需要切换存储区
+        }
+
+        void pop_back(){
+            //无元素时不pop
+            if(empty()) return;
+            //判断是否需要切换存储区
+            if(finish.cur!=finish.first){
+                //不需要切换
+                --finish.cur;//important:注意finish是开区间,该指针不指向元素,因此先移动再destroy
+                destroy(finish.cur);
+                
+                return;
+            }
+            node_allocate::deallocate(finish.first);
+            finish.set_node(finish.node--);
+            finish.cur=finish.last--;
+            destroy(finish.cur);//先切换然后-1,再destroy,是因为STLfinish不指向存储区最后一个地址
+        }
+
+        void pop_front(){
+            if (empty()) return;
+            if(start.cur!=(start.last-1)){
+                destroy(start.cur);
+                --start.cur;
+                return;
+            }
+            //需要切换到下一个存储区
+            destroy(start.cur);
+            node_allocate::deallocate(start.first);
+            start.set_node(start.node+1);
+            start.cur=start.first;
+        }
+
+        void clear(){
+            //析构所有元素,释放所有空间,只留一个
+            if(empty()) return;
+            //需要注意的是:clear之后应让start处在map中间位置
+
+            // finish.cur=finish.first;
+        }
     protected:
         //初始化的时候采用
         void fill_initialize(size_type num, const value_type &val){
@@ -240,18 +300,30 @@ class deque {
             start.set_node(nstart);//set_node保证跳到正确的存储区,并让first,last指向正确的范围
             finish.set_node(nfinish);
             start.cur = start.first;
-            finish.cur = finish.first + elem_num % buffer_size();
+            finish.cur = finish.first + elem_num % buffer_size();//important:没有-1，说明是左闭右开区间
         }
 
     void push_back_aux(const T& x){
         value_type val_copy = x;
         reserve_map_at_back();//检查是否要申请新的存储区
-        *(finish.node + 1) = node_allocate();
+        *(finish.node + 1) = node_allocate();//必须要先申请新空间,因为切换到了一个未被开发的存储区
 
         construct(finish.cur,val_copy);
-        finish.set_node(finish.node+1);
+        finish.set_node(finish.node+1);//在要切换存储区的情况下先进行了构造再切换
+                                        //这说明finish不能指向存储区的最后一个地址
         finish.cur= finish.first;
     }
+
+    void push_front_aux(const T& x){
+        value_type val_copy = x;
+        reverse_map_at_front();//看看是否要配置新的存储区
+        *(start.node-1)=node_allocate();//必须要先申请新空间,因为切换到了一个未被开发的存储区
+        start.set_node(start.node-1);
+        start.cur=start.last--;//important,不要用--i,可以用i--
+        construct(start.cur,val_copy);
+    }
+        
+        
 
     void reserve_map_at_back(size_type nodes_to_add = 1){//nodes_to_add表示需要增加的节点个数
         if(nodes_to_add + 1 > map_size - (finish.node-map)){
@@ -273,11 +345,11 @@ class deque {
 
         map_pointer new_nstart;
         if (map_size > 2 * new_num_nodes) {
-            //情况一：现有的存储区个数足以存储2倍于已用的存储区个数,进行指针的重定向
+            //情况一：现有的存储区个数足以存储2倍于已用的存储区个数,只需要进行指针的重定向，不需要新空间
             //1.让被占用的map尽量靠中间:总共需要占用new_num_nodes个存储区,共有map_size个存储区
             new_nstart= map + (map_size-new_num_nodes)/2//(map_size-new_num_nodes)/2表示让前后未被使用
                             + (add_at_front?nodes_to_add:0);//的存储区数量均匀
-                //(add_at_front?nodes_to_add:0)是因为如果是push_front说明左方需要更多空间,所以要右移一些
+                //(add_at_front?nodes_to_add:0)是因为如果是push_front说明左方需要更多空间,所以靠右一些
             if(new_nstart< start.node)//观察是否会被覆盖(类似vector的erase)
                 copy(start.node,finish.node+1,new_nstart);//前移,不会被覆盖
             else
