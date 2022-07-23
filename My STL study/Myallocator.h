@@ -444,7 +444,7 @@ template<class ForwardIterator, class T>
 inline void 
 __uninitialized_fill_aux(ForwardIterator first,
                             ForwardIterator last, const T& val,__Myfalse_type){
-    ForwardIterator cur = first;//先用着
+    ForwardIterator cur = first;
     for( ; cur!=last ; ++cur){
         construct(&*cur,val);
     }

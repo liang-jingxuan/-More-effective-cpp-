@@ -180,11 +180,14 @@ class deque {
     //important:start和finish只用set_node来操作,因为很多重复的代码,而且每个iterator里有4个指针要设置
     //      分别是node,first,last,cur
         iterator start;//struct{T*,T*,T*,T**}类型
-        iterator finish;//逐一要左闭右开
+        iterator finish;//注意要左闭右开
         
         map_pointer map;//T**类型
 
-        size_type   map_size;
+        size_type   map_size;//作用:1.用来确定总共有多少个存储区 2.初始化时使被占用的T**尽量居中
+                            //3.和start以及finish进行运算可以知道左右两侧备用空间是否充足(至少两边各有一个备用)
+                            //比如:左侧:map_size-(map_size-(start.node-map))=start.node - map
+                            //    右侧：map_size - (finish.node-map)
     
     static size_t buffer_size(){return __deque_buf_size(BufSz,sizeof(T));};//一个存储区能放的元素个数
 
@@ -398,15 +401,16 @@ class deque {
             //2.确定map(T**)的个数,最少8个,最多num_nodes+2ge
             map_size = initial_map_size()<num_nodes+2?num_nodes+2:initial_map_size();//有多少个T**
             map = map_allocate::allocate(map_size);//构造足够存放map_size个T**数据空间
-
+                                    //important:一般得到8*map_size大小的空间,因为在64位系统中一个指针的大小是8字节
+                                    //sizeof(map)=8,注意不是8*map_size.因为map是一个指向指针的指针,我们用map_size来确定T**个数
             //3.调整start和finish
             map_pointer nstart = map + (map_size - num_nodes) /2;//存放该lem_num个数据将占用nstart~nfinish所指的T**
             map_pointer nfinish = nstart + num_nodes-1;
-
-            map_pointer cur;//用来遍历map的上的每个T**,并让每个T**指向一个存储区
-
-            for(cur=nstart;cur!=nfinish;++cur){
-                *cur = allocate_node();//分配存储区,并让T**指向存储区
+            //4.为每个map_pointer分配存储区
+            map_pointer cur=nstart;
+            //cur用来遍历map的上的每个T**,并让每个T**指向一个存储区
+            for(; cur<=nfinish; ++cur){
+                *cur = (T*)allocate_node();//分配存储区,并让T**指向存储区
             }//cur是
 
             start.set_node(nstart);//set_node保证跳到正确的存储区,并让first,last指向正确的范围
@@ -495,9 +499,9 @@ class deque {
         finish.set_node(new_nstart+old_num_nodes-1);
     }
 
-    T* allocate_node(){
+    void* allocate_node(){
         //返回一个存储区
-        return (T*)node_allocate::allocate(buffer_size());
+        return node_allocate::allocate(buffer_size());
     }
 
     size_type initial_map_size(){

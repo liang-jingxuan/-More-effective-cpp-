@@ -156,8 +156,10 @@ int Mylisttest(){
 }
 
 int Mydequetest(){
+    //1.构造测试
+    std::cout<<"1.My deque constructor test:"<<endl;
     deque<int> mydq(5,0);
-    
+    std::cout<<"Print the constructed deque:";
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
 }
