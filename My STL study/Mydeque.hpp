@@ -355,6 +355,7 @@ class deque {
             return start + left_sz;
         }
 
+
         iterator insert(iterator pos, const T& val){//原创代码
             //作用在pos前面插入一个val
             //思路:使用push_back或push_front插入一个任意的元素,然后复制元素,最后修改pos-1元素为val
@@ -380,6 +381,7 @@ class deque {
             return new_pos;
         }
 
+        iterator insert(iterator pos,size_type num,const T& x){}
     protected:
         //初始化的时候采用
         void fill_initialize(size_type num, const value_type &val){
@@ -422,7 +424,7 @@ class deque {
     void push_back_aux(const T& x){
         value_type val_copy = x;
         reserve_map_at_back();//检查是否要申请新的存储区
-        *(finish.node + 1) = node_allocate();//必须要先申请新空间,因为切换到了一个未被开发的存储区
+        *(finish.node + 1) = (T*)allocate_node();//必须要先申请新空间,因为切换到了一个未被开发的存储区
 
         construct(finish.cur,val_copy);
         finish.set_node(finish.node+1);//在要切换存储区的情况下先进行了构造再切换
@@ -433,15 +435,15 @@ class deque {
     void push_front_aux(const T& x){
         value_type val_copy = x;
         reverse_map_at_front();//看看是否要配置新的存储区
-        *(start.node-1)=node_allocate();//必须要先申请新空间,因为切换到了一个未被开发的存储区
+        *(start.node-1)=(T*)allocate_node();//必须要先申请新空间,因为切换到了一个未被开发的存储区
         start.set_node(start.node-1);
-        start.cur=start.last--;//important,不要用--i,可以用i--
+        start.cur=start.last-1;//important,不要用--i,可以用i--
         construct(start.cur,val_copy);
     }
         
         
     void reserve_map_at_back(size_type nodes_to_add = 1){//nodes_to_add表示需要增加的节点个数
-        if(nodes_to_add + 1 > map_size - (finish.node-map)){
+        if(nodes_to_add + 1 > (size_type)(map_size - (finish.node-map))){
             //一次增加至少2个新的存储区,右边表示finish右侧可用的存储区个数
             //如果右侧可用存储区个数少于需要增加的存储区数量
             //意味着:"--如果不指定nodes_to_add--"那么finish右边始终至少有2个存储区
@@ -454,7 +456,7 @@ class deque {
     }
 
     void reverse_map_at_front(size_type nodes_to_add = 1){
-        if(nodes_to_add > start.node - map)
+        if((difference_type)nodes_to_add > start.node - map)
             reallocate_map(nodes_to_add,true);
     }
 

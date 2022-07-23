@@ -2,11 +2,11 @@
 #include"Myvector.h"
 #include "Mylist.hpp"
 #include"Mydeque.hpp"
+#include"deque"
 using namespace mySTL;
 
 
 int Myvectortst(){
-
     //1.Myallocator 文件测试:OK
     //void *p=mySTL::Mysimple_alloc<void,mySTL::malloc_alloc>::allocate(66);
     //mySTL::Mysimple_alloc<void,mySTL::malloc_alloc>::deallocate(p,66)
@@ -160,6 +160,19 @@ int Mydequetest(){
     std::cout<<"1.My deque constructor test:"<<endl;
     deque<int> mydq(5,0);
     std::cout<<"Print the constructed deque:";
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
+    //2.push_back,push_front,size测试
+    std::cout<<"\n1.Push back and front test:"<<endl;
+    for(int ix=0;ix<150;++ix){
+        mydq.push_back(ix);
+        mydq.push_front(-ix);
+        std::cout<<"\nThe "<< ix <<" -th push size:";
+        std::cout<<mydq.size()<<endl;
+    }
+    std::cout<<"Print the deque after push:";
+    std::cout<<"Print the size of deque after push:";
+    std::cout<<mydq.size()<<endl;//理论上是5+150*2=305
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
 }
