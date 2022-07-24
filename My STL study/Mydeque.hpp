@@ -131,7 +131,7 @@ struct __deque_iterator{
 
     self operator-(difference_type n) const{
         self tmp=*this;
-        tmp+=-n;
+        return tmp+=-n;
     }
 
     reference operator[](difference_type n) const{
@@ -196,7 +196,10 @@ class deque {
         iterator end(){return finish;}
 
         reference front(){return *start;}
-        reference back(){return *(finish--);}
+        reference back(){
+            iterator res_ite=finish-1;
+            return *res_ite;
+        }
 
         reference operator[](const size_type  n){
             return start[difference_type(n)];
@@ -273,31 +276,55 @@ class deque {
         void clear(){
             //析构所有元素,释放所有空间,只留一个
             if(empty()) return;
-            //1.先处理必然是被填满了的存储区,即(start,finish)
+            //1.先处理必然是被填满了的存储区,即(start,finish),由于pop_back和pop_front,可能start.node和finish.node是不满的
             map_pointer to_del=start.node+1;//to_del是一个指向存储区的节点,*to_del表示节点
             for(;to_del<finish.node;++to_del){
                 destroy(*to_del,*to_del + buffer_size());
-                map_allocate::deallocate(*to_del,buffer_size());
+                node_allocate::deallocate(*to_del,buffer_size());//释放该缓存区
             }
             //原创代码,我把所有元素析构,并释放了所有空间,然后让start居中
             //          STL代码:析构所有元素,释放start以外的空间,start保持不变
             //处理start和finish
+            
             if(start!=finish){
                 //start和finish不同存储区,析构并释放finish
                 destroy(finish.first,finish.cur);
-                node_allocate::deallocate(finish.first,buffer_size());
+                node_allocate::deallocate(finish.first, finish.cur - finish.first);
                 //析构start,但保留
                 destroy(start.cur,start.last);
-                node_allocate::deallocate(start.first,buffer_size());
+                node_allocate::deallocate(start.first, start.last - start.cur);
                 
             }
             else{
                 //start和finish在相同存储区
                 destroy(start.cur,finish.cur);
-                node_allocate::deallocate(start.first,buffer_size());
+                node_allocate::deallocate(start.first, finish.cur-start.cur);
+                //node_allocate::deallocate(start.first, buffer_size());//bug:我们是用一个空间就配置空间然后构造元素
+                                                                        //start所在存储区不一定全都配置了空间,所以不应该释放
             }
-            start = map + map_size/2;//让start居中
+            map_pointer new_start_node = map + map_size/2;
+            *new_start_node = (T*)node_allocate::allocate(buffer_size());
+            start.node=new_start_node;//让start居中
+            start.cur=start.first;
             finish=start;
+            
+           /*STL的实现方法
+           if(start!=finish){
+                //start和finish不同存储区,析构并释放finish
+                destroy(finish.first,finish.cur);
+                node_allocate::deallocate(finish.first,buffer_size());
+                //析构start,但保留
+                destroy(start.cur,start.last);
+                //node_allocate::deallocate(start.first,buffer_size());
+                
+            }
+            else{
+                //start和finish在相同存储区
+                destroy(start.cur,finish.cur);
+                //node_allocate::deallocate(start.first,buffer_size());
+            }
+            finish=start;
+            */
         }
 
         iterator erase(iterator pos){//移除position,返回移除后补上的元素
@@ -391,14 +418,87 @@ class deque {
 
         iterator insert(iterator pos,size_type num,const T& x){//原创代码
             //在pos前面插入num个x
-
-            //1.先插入不成一个存储区的元素 num%buffer_size()个，使用push_front和push_back
-            for(size_type elem_to_insrt = num%buffer_size();elem_to_insrt>0;--elem_to_insrt){
-                push_front(x);//不要用insert
+            bool need_new_node = start.cur - start.first >= num ||
+                                 finish.last - finish.cur >= num?
+                                 false : true;
+            iterator new_pos = pos;
+            T x_copy=x;
+            //1.根据pos左右元素个数决定搬动左侧还是右侧的元素            
+            //left 为1,right为0
+            //1.1确定放在左边还是右边
+            bool left_or_right;
+            if(start.cur - start.first >= num && finish.last - finish.cur -1>= num){
+                //左右两侧的备用空间都能放下num个元素
+                left_or_right = pos - start < finish - pos?true:false;                }
+            else if(start.cur - start.first >= num) 
+                //左侧的备用空间足够
+                left_or_right = true;
+            else    
+                left_or_right = false;
+            //1.不需要新的存储区,那么start-cur - start.first >= num
+            if(need_new_node == false){
+            //1.2进行构造和搬动
+                if(left_or_right){
+                    //left 用copy
+                    iterator new_start = start - num;
+                    uninitialized_fill_n(new_start,num,x_copy);//需要先构造
+                    copy(start,pos,new_start);
+                    while(num--){
+                        *start=x_copy;
+                        ++start;
+                    }
+                    start=new_start;
+                    new_pos=pos;
+                }else{
+                    //right用copy_backward
+                    iterator new_finish = 
+                                uninitialized_fill_n(finish,num,x_copy);//需要先构造
+                    copy_backward(pos, finish, finish + num - 1);
+                    while(num--){
+                        *pos=x_copy;
+                        ++pos;
+                    }
+                    finish = new_finish;
+                    new_pos = pos-num;
+                }
+                return new_pos;
             }
-            //2.计算要加入多少个节点
-            size_type nodes_to_add = num / buffer_size();
-            
+            //2.需要新的存储区 need_new_node==true
+            if(left_or_right){
+                //left 用copy
+                //计算要增加的存储区个数
+                size_type num_of_new_nodes = (num - (start.cur - start.first))/buffer_size();
+                reserve_map_at_front(num_of_new_nodes);
+                map_pointer cur_node = start.node;
+                for(int ix=0;ix<num_of_new_nodes;++ix){
+                    --cur_node;
+                    *cur_node = (T*)node_allocate::allocate(buffer_size());
+                }
+                iterator new_start = start-num;
+                iterator temp=uninitialized_copy(start,pos,new_start);
+                start = uninitialized_copy_n(temp,pos,x_copy);
+                for(;start!=pos;++start)
+                    *start=x_copy;
+                start=new_start;
+                new_pos = pos - num;
+            }else{
+                //right用copy_backward
+                size_type num_of_new_nodes = (num - (finish.last - finish.cur))/buffer_size();
+                reserve_map_at_back(num_of_new_nodes);
+                map_pointer cur_node = finish.node;
+                for(int ix=0;ix<num_of_new_nodes;++ix){
+                    ++cur_node;
+                    *cur_node = (T*)node_allocate::allocate(buffer_size());
+                }
+                iterator new_finish = uninitialized_fill_n(finish,num,x_copy);
+                size_type elem_to_mov = finish - pos;//总共要搬动的元素个数
+                copy_backward(pos,finish,new_finish);
+                for(int ix=0;ix<elem_to_mov;++ix)
+                    *(pos+ix) = x_copy;
+                new_pos = pos-1;
+                finish = new_finish;
+            }
+            return new_pos;
         }
     protected:
         //初始化的时候采用
@@ -452,7 +552,7 @@ class deque {
 
     void push_front_aux(const T& x){
         value_type val_copy = x;
-        reverse_map_at_front();//看看是否要配置新的存储区
+        reserve_map_at_front();//看看是否要配置新的存储区
         *(start.node-1)=(T*)allocate_node();//必须要先申请新空间,因为切换到了一个未被开发的存储区
         start.set_node(start.node-1);
         start.cur=start.last-1;//important,不要用--i,可以用i--
@@ -473,12 +573,13 @@ class deque {
             }
     }
 
-    void reverse_map_at_front(size_type nodes_to_add = 1){
+    void reserve_map_at_front(size_type nodes_to_add = 1){
         if((difference_type)nodes_to_add > start.node - map)
             reallocate_map(nodes_to_add,true);
     }
 
     void reallocate_map(size_type nodes_to_add, bool add_at_front){
+        //注意:该函数不会改变start和finish在存储区中的位置
         //增加nodes_to_add个缓存区,
         size_type old_num_nodes = finish.node - start.node + 1;//左闭右闭所以+1,占用的存储区
         size_type new_num_nodes = old_num_nodes + nodes_to_add;//新增存储区后占用的存储区

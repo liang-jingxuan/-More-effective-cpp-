@@ -28,7 +28,7 @@
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
-      "externalConsole": true,
+      "externalConsole": false,
       "cwd": "f:/Git1/My STL study",
       "program": "f:/Git1/My STL study/build/Debug/outDebug",
       "MIMode": "gdb",

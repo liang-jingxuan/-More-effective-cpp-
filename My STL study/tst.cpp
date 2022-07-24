@@ -157,13 +157,13 @@ int Mylisttest(){
 int Mydequetest(){
     //1.构造测试
     std::cout<<"1.My deque constructor test:"<<endl;
-    deque<int> mydq(5,0);
+    deque<int> mydq(2,0);
     std::cout<<"Print the constructed deque:";
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
     //2.push_back,push_front,size测试
     std::cout<<"\n1.Push back and front test:"<<endl;
-    for(int ix=0;ix<150;++ix){
+    for(int ix=0;ix<130;++ix){
         mydq.push_back(ix);
         mydq.push_front(-ix);
         std::cout<<"\nThe "<< ix <<" -th push size:";
@@ -171,13 +171,37 @@ int Mydequetest(){
     }
     std::cout<<"Print the deque after push:";
     std::cout<<"Print the size of deque after push:";
-    std::cout<<mydq.size()<<endl;//理论上是5+150*2=305
+    std::cout<<mydq.size()<<endl;//理论上是2+130*2=262
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
+    //3.clear() 测试  bug:1.不应该释放未被配置的空间!
+    std::cout<<"\n3.Clear function test"<<endl;
+    std::cout<<"Print the size of deque:";
+    std::cout<<mydq.size()<<endl;//理论上是2+130*2=262
+    
+    mydq.clear();
+    std::cout<<"\nThe size after clear() is:"<<mydq.size()<<endl;
+    //4. front和back测试   通过调试发现的bug:1.operator+(int)忘了返回 
+    for(int ix=0;ix<131;++ix)
+        mydq.push_back(ix);
+    std::cout<<"\n4.front and back test:"<<endl;
+    std::cout<<"front="<<mydq.front()<<
+                ",back="<<mydq.back()<<endl;
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
+    //5.erase test
+    std::cout<<"\n5.Erase test"<<endl;
+    std::cout<<"\n5.1.Erase an element test"<<endl;
+    mydq.erase(mydq.begin()+5);
+
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
 }
+
+
 int main(){
     //Myvectortst();
     //Mylisttest();
-    
+    Mydequetest();
     return 1;
 }

@@ -48,7 +48,7 @@ class LV1_alloc{
     
     public:
         static void* allocate(size_t n){//分配一个大小为n的空间
-            void *result=malloc(n);
+            void *result = malloc(n);
             if(result==0)   result=oom_malloc(n);//分配不到内存的时候的处理办法
             return result;
         }
