@@ -357,6 +357,14 @@ class deque {
 
 
         iterator insert(iterator pos, const T& val){//原创代码
+            if(pos==finish){
+                push_back(val);
+                return finish-1;
+            }
+            else if(pos==start){
+                push_front(val);
+                return start;
+            }
             //作用在pos前面插入一个val
             //思路:使用push_back或push_front插入一个任意的元素,然后复制元素,最后修改pos-1元素为val
             //1.如果使用push_back,说明插入元素后右边需要搬移元素更少
@@ -381,7 +389,17 @@ class deque {
             return new_pos;
         }
 
-        iterator insert(iterator pos,size_type num,const T& x){}
+        iterator insert(iterator pos,size_type num,const T& x){//原创代码
+            //在pos前面插入num个x
+
+            //1.先插入不成一个存储区的元素 num%buffer_size()个，使用push_front和push_back
+            for(size_type elem_to_insrt = num%buffer_size();elem_to_insrt>0;--elem_to_insrt){
+                push_front(x);//不要用insert
+            }
+            //2.计算要加入多少个节点
+            size_type nodes_to_add = num / buffer_size();
+            
+        }
     protected:
         //初始化的时候采用
         void fill_initialize(size_type num, const value_type &val){

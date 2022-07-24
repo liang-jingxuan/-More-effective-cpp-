@@ -2,7 +2,6 @@
 #include"Myvector.h"
 #include "Mylist.hpp"
 #include"Mydeque.hpp"
-#include"deque"
 using namespace mySTL;
 
 
@@ -179,6 +178,6 @@ int Mydequetest(){
 int main(){
     //Myvectortst();
     //Mylisttest();
-    Mydequetest();
+    
     return 1;
 }
