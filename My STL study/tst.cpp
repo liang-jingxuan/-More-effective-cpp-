@@ -161,6 +161,8 @@ int Mydequetest(){
     std::cout<<"Print the constructed deque:";
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
+    
+    
     //2.push_back,push_front,size测试
     std::cout<<"\n1.Push back and front test:"<<endl;
     for(int ix=0;ix<130;++ix){
@@ -174,6 +176,8 @@ int Mydequetest(){
     std::cout<<mydq.size()<<endl;//理论上是2+130*2=262
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
+    
+    
     //3.clear() 测试  bug:1.不应该释放未被配置的空间!
     std::cout<<"\n3.Clear function test"<<endl;
     std::cout<<"Print the size of deque:";
@@ -181,21 +185,47 @@ int Mydequetest(){
     
     mydq.clear();
     std::cout<<"\nThe size after clear() is:"<<mydq.size()<<endl;
+
+    
     //4. front和back测试   通过调试发现的bug:1.operator+(int)忘了返回 
-    for(int ix=0;ix<131;++ix)
+    for(int ix=0;ix<140;++ix)
         mydq.push_back(ix);
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
     std::cout<<"\n4.front and back test:"<<endl;
     std::cout<<"front="<<mydq.front()<<
                 ",back="<<mydq.back()<<endl;
-    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
-        std::cout<<*pdq<<',';
+
+    
     //5.erase test
     std::cout<<"\n5.Erase test"<<endl;
     std::cout<<"\n5.1.Erase an element test"<<endl;
     mydq.erase(mydq.begin()+5);
-
+    std::cout<<"\n5.1.After erase 5:"<<endl;
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
         std::cout<<*pdq<<',';
+    std::cout<<"\n5.2.Size before erase:"<<mydq.size()<<endl;
+    mydq.erase(mydq.begin()+4,mydq.begin()+120);//消除第5~第120个元素，共120-5+1=116个元素
+
+    std::cout<<"\n5.1.After erase:"<<endl;
+    std::cout<<"\n5.2.Size after erase:"<<mydq.size()<<endl;
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
+
+    //6.insert,[],size测试
+    std:cout<<"\n6.insert test:"<<endl;
+    mydq.insert(mydq.begin()+4,4);
+    std::cout<<"6.1. After insert an element 4 at the 5-th position:"<<endl;
+    for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
+        std::cout<<*pdq<<',';
+
+    mydq.insert(mydq.begin()+5,10,0);
+    std::cout<<"\n6.2 Insert 10 zeros before element 121:"<<endl;
+    std::cout<<"6.3 using [] to reverse the deque:"<<endl;
+    for(int ix=0;ix<mydq.size();++ix)
+        std::cout<<mydq[ix]<<',';
+
+    mydq.insert(mydq.begin(),128,111);
 }
 
 
@@ -203,5 +233,6 @@ int main(){
     //Myvectortst();
     //Mylisttest();
     Mydequetest();
+    Sequence
     return 1;
 }
