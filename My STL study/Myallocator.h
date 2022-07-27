@@ -356,13 +356,6 @@ uninitialized_fill_n(ForwardIterator first,Size n,const T& x){//在first位置�
     return __uninitialized_fill_n(first,n,x,value_type(first));//为什么不直接填T()?
 }
 
-template<class ForwardIterator,class Size,class T,class T1>
-ForwardIterator 
-__uninitialized_fill_n(ForwardIterator first,Size n,const T& x,T1*){
-    typedef typename __Mytype_traits< T1 >::is_POD_type  is_POD_type;
-    return __uninitialized_fill_n_aux(first,n,x, is_POD_type());
-}
-
 template<class ForwardIterator,class Size,class T>
 inline ForwardIterator
 __uninitialized_fill_n_aux(ForwardIterator first,Size n,const T& x, __Myfalse_type){
@@ -373,12 +366,23 @@ __uninitialized_fill_n_aux(ForwardIterator first,Size n,const T& x, __Myfalse_ty
     return cur;
 }
 
+
 template<class ForwardIterator,class Size,class T>
 inline ForwardIterator
 __uninitialized_fill_n_aux(ForwardIterator first,Size n,const T& x,__Mytrue_type){
-    return fill_n(first,n,x);//因数据类型是原生类型，有高效的填充算法
+    //因数据类型是原生类型，有高效的填充算法
+    for( ; n > 0 ; --n,++first){
+        *first = x;
+    }
+    return first;
 }
 
+template<class ForwardIterator,class Size,class T,class T1>
+ForwardIterator 
+__uninitialized_fill_n(ForwardIterator first,Size n,const T& x,T1*){
+    typedef typename __Mytype_traits< T1 >::is_POD_type  is_POD_type;
+    return __uninitialized_fill_n_aux(first,n,x, is_POD_type());
+}
 //4.2**uninitialized_copy  
 //功能:把first到last之间的对复制到position位置
 //输入: 1.起始位置  2.结束为止  3.目标位置
@@ -433,12 +437,7 @@ __uninitialized_copy_aux(InputIterator first , InputIterator last,
 //4.3 uninitialized_fill
 //作用:用val来填充[First,Last)
 
-template<class InputIterator, class T>
-inline void 
-uninitialized_fill(InputIterator first,InputIterator last, const T& val){
-    typedef typename __Mytype_traits<T>::is_POD_type is_POD_type;
-    __uninitialized_fill_aux(first,last,val,is_POD_type());
-}
+
 
 template<class ForwardIterator, class T>
 inline void 
@@ -457,6 +456,13 @@ __uninitialized_fill_aux(ForwardIterator first,
     for( ; first!=last ; ++first){
         *first = val;
     }
+}
+
+template<class InputIterator, class T>
+inline void 
+uninitialized_fill(InputIterator first,InputIterator last, const T& val){
+    typedef typename __Mytype_traits<T>::is_POD_type is_POD_type;
+    __uninitialized_fill_aux(first,last,val,is_POD_type());
 }
 
 }//namespace mySTL

@@ -151,6 +151,12 @@ struct __deque_iterator{
         //node==x.node说明在同一个存储区,
         //如果不在同一个存储区,那么看看存储区的先后关系
     }
+
+    bool operator>(const self& x)const{
+        return (node==x.node)?(cur>x.cur):(node>x.node);
+        //node==x.node说明在同一个存储区,
+        //如果不在同一个存储区,那么看看存储区的先后关系
+    }
 };
 
 template<class T,class Ref,class Pointer,size_t BufSz>
@@ -263,7 +269,7 @@ class deque {
             if (empty()) return;
             if(start.cur!=(start.last-1)){
                 destroy(start.cur);
-                --start.cur;
+                ++start.cur;
                 return;
             }
             //需要切换到下一个存储区
@@ -289,22 +295,22 @@ class deque {
             if(start!=finish){
                 //start和finish不同存储区,析构并释放finish
                 destroy(finish.first,finish.cur);
-                node_allocate::deallocate(finish.first, finish.cur - finish.first);
+                node_allocate::deallocate(*finish.node, buffer_size());
                 //析构start,但保留
                 destroy(start.cur,start.last);
-                node_allocate::deallocate(start.first, start.last - start.cur);
+                node_allocate::deallocate(*start.node, buffer_size());
                 
             }
             else{
                 //start和finish在相同存储区
                 destroy(start.cur,finish.cur);
-                node_allocate::deallocate(start.first, finish.cur-start.cur);
+                node_allocate::deallocate(start.first, buffer_size());
                 //node_allocate::deallocate(start.first, buffer_size());//bug:我们是用一个空间就配置空间然后构造元素
                                                                         //start所在存储区不一定全都配置了空间,所以不应该释放
             }
             map_pointer new_start_node = map + map_size/2;
             *new_start_node = (T*)node_allocate::allocate(buffer_size());
-            start.node=new_start_node;//让start居中
+            start.set_node(new_start_node);//让start居中
             start.cur=start.first;
             finish=start;
             
@@ -329,7 +335,7 @@ class deque {
 
         iterator erase(iterator pos){//移除position,返回移除后补上的元素
             if(pos==finish) return pos;
-            iterator _destination=pos+1;
+            iterator _destination = pos+1;//这是要返回的节点
             size_type num_befor_pos = pos - start;
             //start * * pos , _des * * *,num_befor_pos =3;
             //1.如果pos右边的元素较少,左边较多,则用copy从前往后复制
@@ -374,8 +380,8 @@ class deque {
                 copy(erase_right,finish,erase_left);
                 iterator new_finish = finish - num_to_erase;
                 destroy(new_finish,finish);
-                for(map_pointer cur=finish.node;cur>new_finish;--cur){
-                    node_allocate::deallocate(*cur,buffer_size());
+                for(map_pointer cur=finish.node;cur > new_finish.node;--cur){
+                    node_allocate::deallocate(*cur,buffer_size());//分配足够的存储区
                 }
                 finish=new_finish;
             }
@@ -407,7 +413,7 @@ class deque {
             }
             else{
             //2.如果使用push_front,说明插入元素后左边搬移元素更少
-                iterator num_to_move = left_num_after;
+                size_type num_to_move = left_num_after;
                 push_front(val);
                 new_pos = pos -1;
                 copy(start+1,pos,start);
@@ -453,7 +459,7 @@ class deque {
                     //right用copy_backward
                     iterator new_finish = 
                                 uninitialized_fill_n(finish,num,x_copy);//需要先构造
-                    copy_backward(pos, finish, finish + num - 1);
+                    copy_backward(pos, finish, finish + num );
                     while(num--){
                         *pos=x_copy;
                         ++pos;
@@ -464,6 +470,7 @@ class deque {
                 return new_pos;
             }
             //2.需要新的存储区 need_new_node==true
+            left_or_right=pos-start<finish-pos?true:false;
             if(left_or_right){
                 //left 用copy
                 //计算要增加的存储区个数
@@ -475,9 +482,10 @@ class deque {
                     *cur_node = (T*)node_allocate::allocate(buffer_size());
                 }
                 iterator new_start = start-num;
-                iterator temp=uninitialized_copy(start,pos,new_start);
-                start = uninitialized_copy_n(temp,pos,x_copy);
-                for(;start!=pos;++start)
+                size_type elem_to_mv=pos-start;
+                iterator temp=uninitialized_copy(start,pos,new_start);//搬动原本的元素
+                uninitialized_fill(temp,pos-elem_to_mv,x_copy);
+                for(;elem_to_mv>0;--elem_to_mv,++start)
                     *start=x_copy;
                 start=new_start;
                 new_pos = pos - num;
