@@ -280,6 +280,7 @@ class RBT{
             root()=0;
             left_most()=header;
             right_most()=header;
+            //父节点为nullptr
         }
 
     public:
@@ -324,7 +325,72 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_equal(const value_type& val){
     return __insert(x,y,val);//x必然是nullptr否则无法退出上述while循环,那么传入x节点是无意义的
 }
 
+//插入一个值，返回值中，iterator指向插入的节点;bool指示是否插入成功,如果有相同的值则为false,
+template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
+pair<typename RBT<Key,Value,KeyOfValue,compare,Alloc>::iterator,bool>
+RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
+    link_type y=header;
+    link_type x=root();//若是空树,则此时root()==header
+    bool com_res=true;
+    while(x!=nullptr){
+        y = x;
+        com_res=key_compare(KeyOfValue()(val),Key(x));//val>x则x向右走,val<=x则x向左走
+        x = com_res?left(x):right(x);
+    }
+//此时y可能是叶节点,也可能是header。也是插入点的父节点
+    iterator tmp=iterator(y);
+    if(com_res){//确定插入到哪里
+        if(tmp==begin())//插入点的父节点是最小值
+        return pair<iterator , bool>(__insert(x,y,val),true);
+    }
+    else{
+        --tmp;//莫名其妙
+    }
+    if(key_compare(KeyOfValue()(key(tmp.node)),KeyOfValue()(val)))
+        return pair<iterator,bool>(__insert(x,y,val),true);//和上面的insert有何区别?
 
+    return pair<iterator,bool>(tmp,false);
+}
+
+
+template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
+typename RBT<Key,Value,KeyOfValue,compare,Alloc>::iterator
+RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr,base_ptr __y,const Value& val){
+    //__y可能是header
+    //x是新值插入点(该x毫无用处,毫无意义),y是插入点的父节点,v是新值
+    //link_type x=link_type(__x);
+    link_type y=link_type(__y);
+    link_type z;//指向插入点
+    if(y==header||key_compare(KeyOfValue()(val),key(y))){
+        //判断条件1:如果是y==header说明是空树,插入到y左右孩子都可以
+        //判断条件2:如果val<y,则应该插入到y的左孩子
+        //STL中的x!=nullptr我认为是毫无意义的
+        //综上,插入到y的左孩子最合适
+        z = alloc_and_construct_node(val);
+        left(y)=z;
+        if(y==header){//发现插入点的父节点是header,说明该树是空树,则val应该成为根节点
+            root()=z;
+            right_most()=z;
+            //为什么没有left_most()=z?
+        }
+        else if (y==left_most()){
+            left_most()=z;
+        }
+    }
+    else{
+        z = alloc_and_construct_node(val);     
+        right(y)=z;       
+        if (y==right_most()){
+            right_most()=z;
+        }
+    }
+    parent(z)=y;
+    left(z)=nullptr;
+    right(z)=nullptr;
+    __rbt_insert_rebalence(z,root());//插入的重平衡主要解决的是双红
+    ++node_count;
+    return iterator(z);
+}
 
 }//namespace mySTL
 #endif
