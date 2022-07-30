@@ -270,7 +270,7 @@ class RBT{
         typedef __rbt_iterator<value_type,reference,pointer>    iterator;
     
     private:
-        iterator __insert(base_ptr x,base_ptr y,const value_type& v);
+        iterator __insert(base_ptr y,const value_type& v);
         link_type   __copy(link_type x, link_type y);
         void __erase(link_type x);
         void init(){//初始化一棵红黑树
@@ -315,57 +315,80 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_equal(const value_type& val){
     link_type x=root();
     while(x!=nullptr){
         y = x;
-        x = key_compare(KeyOfValue()(val),Key(x))?left(x):right(x);
-        //key_compare(arg1,arg2)函数中，若arg1<arg2则返回true，否则返回false。
+        x = key_compare(KeyOfValue()(val),Key(x))?left(x):right(x);//相当于val<x?true:false;
+        //key_compare(arg1,arg2)函数中，若arg1<arg2则返回true，arg1>=arg2返回false。
         //要插入的值val小于目前的值x,则val应该插入在x的左子树,x往左走;否则往右走
         //如果在x_equal节点处遇到了相同的值，那么应该插入到该x_equal节点的后继或前驱位置
-        //STL采取了插入到前驱位置
+        //important：在遇到重复值的时候，STL采取了插入到后继位置的策略
     }
-    
-    return __insert(x,y,val);//x必然是nullptr否则无法退出上述while循环,那么传入x节点是无意义的
+    return __insert(y,val);//x必然是nullptr否则无法退出上述while循环,那么传入x节点是无意义的
 }
 
 //插入一个值，返回值中，iterator指向插入的节点;bool指示是否插入成功,如果有相同的值则为false,
 template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
 pair<typename RBT<Key,Value,KeyOfValue,compare,Alloc>::iterator,bool>
 RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
+    //important:要注意是否插入了一个重复的值，如果有重复的值，那么插入点的父节点的
     link_type y=header;
-    link_type x=root();//若是空树,则此时root()==header
+    link_type x=root();//若是空树,则此时root()==header->parent,而header的parent是nullpte
     bool com_res=true;
     while(x!=nullptr){
         y = x;
         com_res=key_compare(KeyOfValue()(val),Key(x));//val>x则x向右走,val<=x则x向左走
         x = com_res?left(x):right(x);
     }
-//此时y可能是叶节点,也可能是header。也是插入点的父节点
-    iterator tmp=iterator(y);
-    if(com_res){//确定插入到哪里
-        if(tmp==begin())//插入点的父节点是最小值
-        return pair<iterator , bool>(__insert(x,y,val),true);
-    }
-    else{
-        --tmp;//莫名其妙
-    }
-    if(key_compare(KeyOfValue()(key(tmp.node)),KeyOfValue()(val)))
-        return pair<iterator,bool>(__insert(x,y,val),true);//和上面的insert有何区别?
 
-    return pair<iterator,bool>(tmp,false);
+    //原创代码
+    iterator insert_node_parent=iterator(y);
+    iterator insrt_parent_prev=insert_node_parent;
+    --insrt_parent_prev;
+    //1.是一个已经存在值,那么insrt_parent_prev的值==insrt_parent_prev的值
+    if(key_compare(KeyOfValue()(key(insrt_parent_prev.node)),KeyOfValue()(key(insert_node_parent.node)))
+        ==key_compare(KeyOfValue()(key(insert_node_parent.node)),KeyOfValue()(key(insrt_parent_prev.node))))
+        return pair<iterator,bool>(insert_node_parent,false);
+
+    //2.不是已存在的值,没必要判断左右,因为__insert函数会再次判断
+    return pair<iterator, bool>(__insert(y,val),true);
+    /*STL的代码难以理解
+//此时y可能是叶节点,也可能是header。也是插入点的父节点
+    iterator insert_node_parent=iterator(y);//这个节点需要确定是否重复
+    //如果重复:
+    //val 等于 任意某值,则insert_node_parent和insert_node_parent的前驱值相等  ------>不插入
+    //如果不重复
+    //val 小于 最小值,则insert_node_parent是left_most.      ------>插入insert_node_parent左/右
+    //val 大于 最小值,则insert_node_parent是插入点的父节点      ---->插入insert_node_parent左/右
+    if(com_res){//确定插入到哪里,插入点的左?or右?
+    //1.插在insert_node_parent左
+        if(insert_node_parent==begin())//1.1、insert_node_parent==left_modest,说明val小于最小值
+            return pair<iterator, bool>(__insert(x,y,val),true);
+        else{//1.2、val大于等于最小值。如果等于那么返回insert_node_parent的前驱即可。
+            --insert_node_parent;//important:找到前驱,因为如果有重复的值,则会插入到重复值节点的后继位置,因此找到前驱即可
+        }
+    }
+    
+    //2.插在insert_node_parent右
+    if(key_compare(KeyOfValue()(key(insert_node_parent.node)),KeyOfValue()(val)))
+        return pair<iterator,bool>(__insert(x,y,val),true);
+
+    //3.找到相同的值,返回false
+    return pair<iterator,bool>(insert_node_parent,false);
+    */
 }
 
 
 template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
 typename RBT<Key,Value,KeyOfValue,compare,Alloc>::iterator
-RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr,base_ptr __y,const Value& val){
-    //__y可能是header
-    //x是新值插入点(该x毫无用处,毫无意义),y是插入点的父节点,v是新值
-    //link_type x=link_type(__x);
-    link_type y=link_type(__y);
+RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr __y,const Value& val){
+    //思路：
+    //1.判断__y是否header，如果是header,说明是空树,配置并构造一个值为val的节点,让该节点成为root
+    //2.__y不是header,根据 __y和val的大小进行插入
+    link_type y = link_type(__y);
     link_type z;//指向插入点
     if(y==header||key_compare(KeyOfValue()(val),key(y))){
         //判断条件1:如果是y==header说明是空树,插入到y左右孩子都可以
         //判断条件2:如果val<y,则应该插入到y的左孩子
         //STL中的x!=nullptr我认为是毫无意义的
-        //综上,插入到y的左孩子最合适
+        //1.插入到y的左孩子位置最合适
         z = alloc_and_construct_node(val);
         left(y)=z;
         if(y==header){//发现插入点的父节点是header,说明该树是空树,则val应该成为根节点
@@ -373,11 +396,12 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr,base_ptr __y,const Va
             right_most()=z;
             //为什么没有left_most()=z?
         }
-        else if (y==left_most()){
+        else if (y==left_most()){//y!=header&&y==left_most()
             left_most()=z;
         }
     }
     else{
+        //2.插入到y的右孩子位置最合适
         z = alloc_and_construct_node(val);     
         right(y)=z;       
         if (y==right_most()){
@@ -387,10 +411,77 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr,base_ptr __y,const Va
     parent(z)=y;
     left(z)=nullptr;
     right(z)=nullptr;
-    __rbt_insert_rebalence(z,root());//插入的重平衡主要解决的是双红
+    __rbt_insert_rebalance(z,root());//插入的重平衡主要解决的是双红
     ++node_count;
     return iterator(z);
 }
+
+//x是新插入的节点
+inline void __rbt_insert_rebalance(__rbt_node_base* x,__rbt_node_base* root){
+    x->color=__rbtree_node_red;//新节点为红
+    while( x!=root && x->parent->color == __rbtree_node_red){
+        //1.左叔叔
+        if(x->parent == x->parent->parent->right){
+            __rbt_node_base* uncle = x->parent->parent->left;
+            if(uncle != nullptr && uncle->color == __rbtree_node_red){//左叔叔为红,染色即可
+                uncle->color = __rbtree_node_black;
+                x->parent->color = __rbtree_node_black;
+                x->parent->parent->color = __rbtree_node_red;
+                x = x->parent->parent;
+            }
+            else{//没有叔叔,2次旋转+染色
+                if(x->parent->left==x){
+                    __rbt_right_rotate(x,root);
+                }
+                __rbt_left_rotate(x,root);
+                x->color=__rbtree_node_black;
+                x->left=__rbtree_node_red;
+                x->right=__rbtree_node_red;
+            }
+        }
+        //2.右叔叔
+        else{//右叔叔是红节点,只需要染色
+             __rbt_node_base* uncle = x->parent->parent->right;
+             if(uncle != nullptr && uncle->color == __rbtree_node_red){
+                uncle->color = __rbtree_node_black;
+                x->parent->color = __rbtree_node_black;
+                x->parent->parent->color = __rbtree_node_red;
+                x = x->parent->parent;
+             }
+             else{//右叔叔不存在(不存在即黑),旋转+染色
+                if(x->parent->right==x)
+                    __rbt_left_rotate(x,root);
+                __rbt_right_rotate(x,root);
+                x->color=__rbtree_node_black;
+                x->left=__rbtree_node_red;
+                x->right=__rbtree_node_red;
+             }
+        }
+    }
+    x->color=__rbtree_node_black;//根节点必须是黑色的
+}
+
+
+inline void __rbt_right_rotate(__rbt_node_base* x,__rbt_node_base* root){
+//  情况1:   root                   情况2:  root 
+//         O                              ...   
+//       x                              O                      
+//                                    x
+//对于情况1:不用修改root,返回x
+//对于情况2:root=x
+        __rbt_node_base* tmp=x->parent;//原来x的parent
+        x->parent->parent->right = x;
+        x->parent = x->parent->parent;
+
+        x->right->parent = tmp;
+        tmp->left = x->right;
+
+        x->right = tmp;
+        tmp->parent = x;
+
+}
+
+
 
 }//namespace mySTL
 #endif
