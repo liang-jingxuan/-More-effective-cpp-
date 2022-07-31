@@ -2,6 +2,7 @@
 #include"Myvector.h"
 #include "Mylist.hpp"
 #include"Mydeque.hpp"
+#include"MY_RBT.h"
 using namespace mySTL;
 
 
@@ -228,11 +229,26 @@ int Mydequetest(){
     mydq.insert(mydq.begin(),128,111);
 }
 
+  template<typename _Tp>
+    struct identity
+    {
+      const _Tp&
+      operator()(const _Tp& __x) const
+      { return __x; }
+    };
 
+
+void Myrbttest(){
+    RBT<int,int,identity<int>,less<int>> itree;//less <返回true,>=返回false
+                                            //identity是如何根据value值求key
+    itree.insert_equal(1);
+    itree.insert_equal(1);
+    itree.insert_equal(1);
+}
 int main(){
     //Myvectortst();
     //Mylisttest();
-    Mydequetest();
-    Sequence
+    //Mydequetest();
+    Myrbttest();
     return 1;
 }

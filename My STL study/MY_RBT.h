@@ -8,6 +8,8 @@
 //标注为"问题"的内容需要我调试的时候进行观察学习
 using namespace mySTL;
 namespace mySTL{
+    /*全局函数声明*/
+
 typedef bool __rbt_color_type;
 const __rbt_color_type __rbtree_node_red   = false;
 const __rbt_color_type __rbtree_node_black = true;
@@ -179,6 +181,9 @@ struct __rbt_iterator:public rbt_base_iterator{
 };
 
 //5.红黑树
+    inline void __rbt_left_rotate(__rbt_node_base*,__rbt_node_base*);
+    inline void __rbt_right_rotate(__rbt_node_base*,__rbt_node_base*);
+
 template<class Key,class Value,class KeyOfValue,class compare,class Alloc=pool_alloc>
 class RBT{
     /*类型名重命名*/
@@ -186,9 +191,9 @@ class RBT{
         typedef void*                               void_pointer;
         typedef __rbt_node_base*                    base_ptr;//没有数据成员的部分
         typedef __rbt_node<Value>                   rbt_node;
-        typedef Mysimple_alloc<__rbt_node,Alloc>    node_allocator;//分配一个节点的空间配置器
+        typedef Mysimple_alloc<rbt_node,Alloc>      node_allocator;//分配一个节点的空间配置器
         typedef __rbt_color_type                    color_type;
-        typedef __rbt_node<Value>                   rbt_node;
+
     public:
         typedef Key                 Key_type;
         typedef Value               value_type;
@@ -233,8 +238,8 @@ class RBT{
     protected:
         //问题2:这些函数有什么用----->用来为header赋值
         link_type& root()const {return (link_type&)header->parent;}//返回指向根节点的指针
-        link_type& left_most()const {return header->left;}
-        link_type& right_most()const{return header->right;}
+        link_type& left_most()const {return (link_type&)header->left;}
+        link_type& right_most()const{return (link_type&)header->right;}
         //问题3:这些函数由什么用
         static link_type& left(link_type x){return (link_type&)x->left;}
         static link_type& right(link_type x){return (link_type&)x->right;}
@@ -248,7 +253,7 @@ class RBT{
         static link_type& parent(base_ptr x){return (link_type&)x->parent;}
         static reference value(base_ptr x)  {return (link_type(x))->value_field;}
         static const Key& key(base_ptr x)   {return KeyOfValue()(value(link_type(x)));}
-        static color_type& color(base_ptr x){return (color_type&)(linktype(x)->color);}
+        static color_type& color(base_ptr x){return (color_type&)(link_type(x)->color);}
 
         link_type& brother(link_type x){
             if(x==header||x==header->parent) return nullptr;//根节点和header不存在兄弟节点
@@ -300,7 +305,7 @@ class RBT{
         size_type size(){return node_count;}
         bool    empty(){return node_count==0;}
         size_type max_size()const{return size_type(-1);}
-    
+        void clear(){}
     public:
         pair<iterator,bool> insert_unique(const value_type& x);
         iterator insert_equal(const value_type& x);
@@ -315,7 +320,9 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_equal(const value_type& val){
     link_type x=root();
     while(x!=nullptr){
         y = x;
-        x = key_compare(KeyOfValue()(val),Key(x))?left(x):right(x);//相当于val<x?true:false;
+        Key keyofval=KeyOfValue()(val);
+        Key keyofx=key(x);
+        x = key_compare(keyofval,keyofx)?left(x):right(x);//相当于val<x?true:false;
         //key_compare(arg1,arg2)函数中，若arg1<arg2则返回true，arg1>=arg2返回false。
         //要插入的值val小于目前的值x,则val应该插入在x的左子树,x往左走;否则往右走
         //如果在x_equal节点处遇到了相同的值，那么应该插入到该x_equal节点的后继或前驱位置
@@ -394,7 +401,7 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr __y,const Value& val)
         if(y==header){//发现插入点的父节点是header,说明该树是空树,则val应该成为根节点
             root()=z;
             right_most()=z;
-            //为什么没有left_most()=z?
+            //为什么没有left_most()=z?--->因为已经通过上面的left(y)=z进行了赋值
         }
         else if (y==left_most()){//y!=header&&y==left_most()
             left_most()=z;
@@ -435,8 +442,8 @@ inline void __rbt_insert_rebalance(__rbt_node_base* x,__rbt_node_base* root){
                 }
                 __rbt_left_rotate(x,root);
                 x->color=__rbtree_node_black;
-                x->left=__rbtree_node_red;
-                x->right=__rbtree_node_red;
+                x->left->color=__rbtree_node_red;
+                x->right->color=__rbtree_node_red;
             }
         }
         //2.右叔叔
@@ -453,35 +460,54 @@ inline void __rbt_insert_rebalance(__rbt_node_base* x,__rbt_node_base* root){
                     __rbt_left_rotate(x,root);
                 __rbt_right_rotate(x,root);
                 x->color=__rbtree_node_black;
-                x->left=__rbtree_node_red;
-                x->right=__rbtree_node_red;
+                x->left->color=__rbtree_node_red;
+                x->right->color=__rbtree_node_red;
              }
         }
-    }
+    }//endwhile
     x->color=__rbtree_node_black;//根节点必须是黑色的
 }
 
 
 inline void __rbt_right_rotate(__rbt_node_base* x,__rbt_node_base* root){
-//  情况1:   root                   情况2:  root 
-//         O                              ...   
-//       x                              O                      
-//                                    x
-//对于情况1:不用修改root,返回x
-//对于情况2:root=x
-        __rbt_node_base* tmp=x->parent;//原来x的parent
-        x->parent->parent->right = x;
-        x->parent = x->parent->parent;
+        __rbt_node_base* rotate_node=x->parent;
+        if(x->right){//x有右子树则转移到rotate_node的左子树
+            x->right->parent=rotate_node;
+        }
+        rotate_node->left=x->right;
 
-        x->right->parent = tmp;
-        tmp->left = x->right;
+        x->parent=rotate_node->parent;
+        if(root==rotate_node){
+            root=x;
+        }
+        else if(rotate_node->parent->right==rotate_node)
+            rotate_node->parent->right=x;
+        else
+            rotate_node->parent->left=x;
 
-        x->right = tmp;
-        tmp->parent = x;
-
+        x->right=rotate_node;
+        rotate_node->parent=x;
 }
 
+inline void __rbt_left_rotate(__rbt_node_base* x,__rbt_node_base* root){
+        __rbt_node_base* rotate_node=x->parent;
+        if(x->left){//x有右子树则转移到rotate_node的左子树
+            x->left->parent=rotate_node;
+        }
+        rotate_node->right=x->left;
 
+        x->parent=rotate_node->parent;
+        if(root==rotate_node){
+            root=x;
+        }
+        else if(rotate_node->parent->left==rotate_node)
+            rotate_node->parent->left=x;
+        else
+            rotate_node->parent->right=x;
+
+        x->left=rotate_node;
+        rotate_node->parent=x;
+}
 
 }//namespace mySTL
 #endif
