@@ -244,7 +244,13 @@ void Myrbttest(){
     itree.insert_equal(1);
     itree.insert_equal(1);
     itree.insert_equal(1);
+    itree.insert_unique(1);
+    itree.insert_unique(3);
+    for(RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
+            pdq!=itree.end();++pdq)
+        std::cout<<*pdq<<',';
 }
+
 int main(){
     //Myvectortst();
     //Mylisttest();
@@ -252,3 +258,4 @@ int main(){
     Myrbttest();
     return 1;
 }
+

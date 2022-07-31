@@ -174,6 +174,13 @@ struct __rbt_iterator:public rbt_base_iterator{
         return tmp;
     }
 
+    bool operator==(const self& x)const{
+        return x.node==node;//如果两个迭代器指向的节点都一样
+    }
+
+    bool operator!=(const self& x)const{
+        return !((*this)==x);
+    }
     //important3:因为该迭代器属于bidirectional_iterator_tag,即双向移动迭代器
     //          因此只能前移和后移,只需要实现++ -- * ->。
     //          若是randomaccess_iterator_tag则需要实现 += + -= - ++ -- * ->
@@ -181,8 +188,8 @@ struct __rbt_iterator:public rbt_base_iterator{
 };
 
 //5.红黑树
-    inline void __rbt_left_rotate(__rbt_node_base*,__rbt_node_base*);
-    inline void __rbt_right_rotate(__rbt_node_base*,__rbt_node_base*);
+    inline void __rbt_left_rotate(__rbt_node_base*,__rbt_node_base*&);
+    inline void __rbt_right_rotate(__rbt_node_base*,__rbt_node_base*&);
 
 template<class Key,class Value,class KeyOfValue,class compare,class Alloc=pool_alloc>
 class RBT{
@@ -341,21 +348,13 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
     bool com_res=true;
     while(x!=nullptr){
         y = x;
-        com_res=key_compare(KeyOfValue()(val),Key(x));//val>x则x向右走,val<=x则x向左走
+        com_res=key_compare(KeyOfValue()(val),key(x));//val>x则x向右走,val<=x则x向左走
         x = com_res?left(x):right(x);
     }
 
     //原创代码
     iterator insert_node_parent=iterator(y);
-    iterator insrt_parent_prev=insert_node_parent;
-    --insrt_parent_prev;
-    //1.是一个已经存在值,那么insrt_parent_prev的值==insrt_parent_prev的值
-    if(key_compare(KeyOfValue()(key(insrt_parent_prev.node)),KeyOfValue()(key(insert_node_parent.node)))
-        ==key_compare(KeyOfValue()(key(insert_node_parent.node)),KeyOfValue()(key(insrt_parent_prev.node))))
-        return pair<iterator,bool>(insert_node_parent,false);
 
-    //2.不是已存在的值,没必要判断左右,因为__insert函数会再次判断
-    return pair<iterator, bool>(__insert(y,val),true);
     /*STL的代码难以理解
 //此时y可能是叶节点,也可能是header。也是插入点的父节点
     iterator insert_node_parent=iterator(y);//这个节点需要确定是否重复
@@ -364,21 +363,7 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
     //如果不重复
     //val 小于 最小值,则insert_node_parent是left_most.      ------>插入insert_node_parent左/右
     //val 大于 最小值,则insert_node_parent是插入点的父节点      ---->插入insert_node_parent左/右
-    if(com_res){//确定插入到哪里,插入点的左?or右?
-    //1.插在insert_node_parent左
-        if(insert_node_parent==begin())//1.1、insert_node_parent==left_modest,说明val小于最小值
-            return pair<iterator, bool>(__insert(x,y,val),true);
-        else{//1.2、val大于等于最小值。如果等于那么返回insert_node_parent的前驱即可。
-            --insert_node_parent;//important:找到前驱,因为如果有重复的值,则会插入到重复值节点的后继位置,因此找到前驱即可
-        }
-    }
-    
-    //2.插在insert_node_parent右
-    if(key_compare(KeyOfValue()(key(insert_node_parent.node)),KeyOfValue()(val)))
-        return pair<iterator,bool>(__insert(x,y,val),true);
-
-    //3.找到相同的值,返回false
-    return pair<iterator,bool>(insert_node_parent,false);
+#elif
     */
 }
 
@@ -418,95 +403,124 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr __y,const Value& val)
     parent(z)=y;
     left(z)=nullptr;
     right(z)=nullptr;
-    __rbt_insert_rebalance(z,root());//插入的重平衡主要解决的是双红
+    __rbt_insert_rebalance(z,header->parent);//插入的重平衡主要解决的是双红
     ++node_count;
     return iterator(z);
 }
 
 //x是新插入的节点
-inline void __rbt_insert_rebalance(__rbt_node_base* x,__rbt_node_base* root){
+inline void __rbt_insert_rebalance(__rbt_node_base* x,__rbt_node_base*& root){
+    //important:"__rbt_node_base*& root"这里必须要&,因为根节点是唯一的,
+    //          没有了&就不会修改唯一的根的信息,而这个函数会修改关于根的信息。
     x->color=__rbtree_node_red;//新节点为红
     while( x!=root && x->parent->color == __rbtree_node_red){
         //1.左叔叔
         if(x->parent == x->parent->parent->right){
             __rbt_node_base* uncle = x->parent->parent->left;
             if(uncle != nullptr && uncle->color == __rbtree_node_red){//左叔叔为红,染色即可
+                //          |              |
+                //          b              b
+                //        r   r          r   r
+                //           x                 x
                 uncle->color = __rbtree_node_black;
                 x->parent->color = __rbtree_node_black;
                 x->parent->parent->color = __rbtree_node_red;
                 x = x->parent->parent;
             }
             else{//没有叔叔,2次旋转+染色
-                if(x->parent->left==x){
+                //          |              | 
+                //          b              b
+                //            r              r
+                //           x                 x
+                if(x->parent->left==x){//左边的情况
+                    x=x->parent;
                     __rbt_right_rotate(x,root);
                 }
-                __rbt_left_rotate(x,root);
-                x->color=__rbtree_node_black;
-                x->left->color=__rbtree_node_red;
-                x->right->color=__rbtree_node_red;
+                __rbt_left_rotate(x->parent->parent,root);
+                x->parent->color = __rbtree_node_black;
+                x->parent->left->color = __rbtree_node_red;
             }
         }
         //2.右叔叔
         else{//右叔叔是红节点,只需要染色
              __rbt_node_base* uncle = x->parent->parent->right;
              if(uncle != nullptr && uncle->color == __rbtree_node_red){
+                //          |              |
+                //          b              b
+                //       r     r         r    r
+                //         x           x        
                 uncle->color = __rbtree_node_black;
                 x->parent->color = __rbtree_node_black;
                 x->parent->parent->color = __rbtree_node_red;
                 x = x->parent->parent;
              }
              else{//右叔叔不存在(不存在即黑),旋转+染色
-                if(x->parent->right==x)
+                //          |              |
+                //          b              b
+                //       r               r    
+                //         x           x      
+                if(x->parent->right==x){
+                    x=x->parent;//旋转点
                     __rbt_left_rotate(x,root);
-                __rbt_right_rotate(x,root);
-                x->color=__rbtree_node_black;
-                x->left->color=__rbtree_node_red;
-                x->right->color=__rbtree_node_red;
+                }
+                __rbt_right_rotate(x->parent->parent,root);
+                x->parent->color = __rbtree_node_black;
+                x->parent->right->color = __rbtree_node_red;
              }
         }
     }//endwhile
-    x->color=__rbtree_node_black;//根节点必须是黑色的
+    root->color=__rbtree_node_black;//根节点必须是黑色的
 }
 
 
-inline void __rbt_right_rotate(__rbt_node_base* x,__rbt_node_base* root){
-        __rbt_node_base* rotate_node=x->parent;
-        if(x->right){//x有右子树则转移到rotate_node的左子树
-            x->right->parent=rotate_node;
+inline void __rbt_right_rotate(__rbt_node_base* x,__rbt_node_base*& root){
+    //x为旋转点,即左孩子当父节点
+        __rbt_node_base* new_parent = x->left;
+        if(new_parent->right!=nullptr)
+            new_parent->right->parent=x;
+        x->left=new_parent->right;
+        
+        new_parent->parent=x->parent;
+        if(x == root){
+            __rbt_node_base* header=x->parent;
+            header->parent=new_parent;
+            root=new_parent;
         }
-        rotate_node->left=x->right;
-
-        x->parent=rotate_node->parent;
-        if(root==rotate_node){
-            root=x;
-        }
-        else if(rotate_node->parent->right==rotate_node)
-            rotate_node->parent->right=x;
+        else if(x->parent->right==x)
+            x->parent->right=new_parent;
         else
-            rotate_node->parent->left=x;
-
-        x->right=rotate_node;
-        rotate_node->parent=x;
+            x->parent->left=new_parent;
+        
+        x->parent=new_parent;
+        new_parent->right=x;
 }
 
-inline void __rbt_left_rotate(__rbt_node_base* x,__rbt_node_base* root){
-        __rbt_node_base* rotate_node=x->parent;
-        if(x->left){//x有右子树则转移到rotate_node的左子树
-            x->left->parent=rotate_node;
-        }
-        rotate_node->right=x->left;
+inline void __rbt_left_rotate(__rbt_node_base* x,__rbt_node_base*& root){
+    //x为旋转点,即右孩子当父节点
+    //STL似乎没有考虑x->parent是header的问题
+    //1.嫁接子树:即将new_parent的左子树嫁接到x的右子树
+        __rbt_node_base* new_parent=x->right;
+        if(new_parent->left!=nullptr)
+            new_parent->left->parent=x;
+        x->right=new_parent->left;
 
-        x->parent=rotate_node->parent;
-        if(root==rotate_node){
-            root=x;
+    //2.接上原来的根
+        new_parent->parent=x->parent;
+        if(x==root){
+            //important:<STL源码剖析>中的STL没有考虑x->parent是header的问题
+            __rbt_node_base* header=x->parent;
+            header->parent=new_parent;
+            root=new_parent;
         }
-        else if(rotate_node->parent->left==rotate_node)
-            rotate_node->parent->left=x;
+        else if(x->parent->right==x)
+            x->parent->right = new_parent;
         else
-            rotate_node->parent->right=x;
-
-        x->left=rotate_node;
-        rotate_node->parent=x;
+            x->parent->left = new_parent;
+        
+    //3.交换x和new_parent的辈分
+        new_parent->left=x;
+        x->parent=new_parent;
+    //代码段3必须放在最后,否则就失去了原来的根的信息
 }
 
 }//namespace mySTL
