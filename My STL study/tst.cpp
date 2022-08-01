@@ -214,7 +214,7 @@ int Mydequetest(){
         std::cout<<*pdq<<',';
 
     //6.insert,[],size测试
-    std:cout<<"\n6.insert test:"<<endl;
+    std::cout<<"\n6.insert test:"<<endl;
     mydq.insert(mydq.begin()+4,4);
     std::cout<<"6.1. After insert an element 4 at the 5-th position:"<<endl;
     for(deque<int>::iterator pdq=mydq.begin();pdq!=mydq.end();++pdq)
@@ -223,10 +223,12 @@ int Mydequetest(){
     mydq.insert(mydq.begin()+5,10,0);
     std::cout<<"\n6.2 Insert 10 zeros before element 121:"<<endl;
     std::cout<<"6.3 using [] to reverse the deque:"<<endl;
-    for(int ix=0;ix<mydq.size();++ix)
+    for(size_t ix=0;ix<mydq.size();++ix)
         std::cout<<mydq[ix]<<',';
 
     mydq.insert(mydq.begin(),128,111);
+
+    return 0;
 }
 
   template<typename _Tp>
@@ -246,6 +248,7 @@ void Myrbttest(){
     itree.insert_equal(1);
     itree.insert_unique(1);
     itree.insert_unique(3);
+    itree.insert_unique(-10);
     for(RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
             pdq!=itree.end();++pdq)
         std::cout<<*pdq<<',';

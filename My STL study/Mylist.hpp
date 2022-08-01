@@ -50,6 +50,10 @@ struct __list_iterator{
         return node!=x.node;
     }
 
+    void operator=(const self& x){//原创代码,其实自动生成的函数也会这么做
+        node = x.node;
+    }
+
     //reference是指对象本身,由于node是一个指向节点的指针,因此需要先解引用*(node)得到节点,然后
     reference operator*()const{return (*node).data;}//指向指针所指的对象*(node)的数据*(node).data
 
@@ -405,8 +409,8 @@ class list{
             ++node_next;
             //2.将node2搬移到node1前
             (*this).transfer(node1,node2,node_next);
-            //3.将node1插入到node2_nextqian
-            node_next=node1.node;
+            //3.将node1插入到node2_next前
+            node_next.node = node1.node;
             ++node_next;
             (*this).transfer(node_next,node1,node_next);
         }

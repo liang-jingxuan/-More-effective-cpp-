@@ -405,7 +405,6 @@ class deque {
             size_type right_num_after = finish - pos;
             iterator new_pos;
             if(right_num_after<left_num_after){
-                size_type num_to_move = right_num_after;
                 push_back(val);
                 new_pos = pos;//根据推演,发现push_back后新的插入点刚好是pos
                 copy_backward(pos , finish-1 , finish);
@@ -413,7 +412,6 @@ class deque {
             }
             else{
             //2.如果使用push_front,说明插入元素后左边搬移元素更少
-                size_type num_to_move = left_num_after;
                 push_front(val);
                 new_pos = pos -1;
                 copy(start+1,pos,start);
@@ -424,8 +422,8 @@ class deque {
 
         iterator insert(iterator pos,size_type num,const T& x){//原创代码
             //在pos前面插入num个x
-            bool need_new_node = start.cur - start.first >= num ||
-                                 finish.last - finish.cur >= num?
+            bool need_new_node = start.cur - start.first >= (difference_type)num ||
+                                 finish.last - finish.cur >= (difference_type)num?
                                  false : true;
             iterator new_pos = pos;
             T x_copy=x;
@@ -433,10 +431,10 @@ class deque {
             //left 为1,right为0
             //1.1确定放在左边还是右边
             bool left_or_right;
-            if(start.cur - start.first >= num && finish.last - finish.cur -1>= num){
+            if(start.cur - start.first >= (difference_type)num && finish.last - finish.cur -1>= (difference_type)num){
                 //左右两侧的备用空间都能放下num个元素
                 left_or_right = pos - start < finish - pos?true:false;                }
-            else if(start.cur - start.first >= num) 
+            else if(start.cur - start.first >= (difference_type)num) 
                 //左侧的备用空间足够
                 left_or_right = true;
             else    
@@ -477,7 +475,7 @@ class deque {
                 size_type num_of_new_nodes = (num - (start.cur - start.first))/buffer_size();
                 reserve_map_at_front(num_of_new_nodes);
                 map_pointer cur_node = start.node;
-                for(int ix=0;ix<num_of_new_nodes;++ix){
+                for(size_type ix=0;ix<num_of_new_nodes;++ix){
                     --cur_node;
                     *cur_node = (T*)node_allocate::allocate(buffer_size());
                 }
@@ -494,14 +492,14 @@ class deque {
                 size_type num_of_new_nodes = (num - (finish.last - finish.cur))/buffer_size();
                 reserve_map_at_back(num_of_new_nodes);
                 map_pointer cur_node = finish.node;
-                for(int ix=0;ix<num_of_new_nodes;++ix){
+                for(size_type ix=0;ix<num_of_new_nodes;++ix){
                     ++cur_node;
                     *cur_node = (T*)node_allocate::allocate(buffer_size());
                 }
                 iterator new_finish = uninitialized_fill_n(finish,num,x_copy);
                 size_type elem_to_mov = finish - pos;//总共要搬动的元素个数
                 copy_backward(pos,finish,new_finish);
-                for(int ix=0;ix<elem_to_mov;++ix)
+                for(size_type ix=0;ix<elem_to_mov;++ix)
                     *(pos+ix) = x_copy;
                 new_pos = pos-1;
                 finish = new_finish;

@@ -29,8 +29,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "f:/Git1/My STL study",
-      "program": "f:/Git1/My STL study/build/Debug/outDebug",
+      "cwd": "c:/Users/XXUAN/Desktop/cppstudy/My STL study",
+      "program": "c:/Users/XXUAN/Desktop/cppstudy/My STL study/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
