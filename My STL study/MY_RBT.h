@@ -351,20 +351,29 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
         com_res=key_compare(KeyOfValue()(val),key(x));//val>x则x向右走,val<=x则x向左走
         x = com_res?left(x):right(x);
     }
-
-    //原创代码
-    iterator insert_node_parent=iterator(y);
-
-    /*STL的代码难以理解
-//此时y可能是叶节点,也可能是header。也是插入点的父节点
-    iterator insert_node_parent=iterator(y);//这个节点需要确定是否重复
-    //如果重复:
-    //val 等于 任意某值,则insert_node_parent和insert_node_parent的前驱值相等  ------>不插入
-    //如果不重复
-    //val 小于 最小值,则insert_node_parent是left_most.      ------>插入insert_node_parent左/右
-    //val 大于 最小值,则insert_node_parent是插入点的父节点      ---->插入insert_node_parent左/右
-#elif
-    */
+    iterator pre_y=iterator(y);
+//   y前驱  y前驱                      |                         y前驱       y前驱
+//     |    |                          |                          |           |
+//     y    y         val<y            |  val>=y                  y           y
+//   x    x  n  y前驱<val<y            |  val>=y>=y的前驱            x       n   x
+// n表示任意节点,y表示插入点的父节点,x是插入的位置,从左到右分别是情况1,2,3,4
+    
+    if(com_res==true){//com_res==true说明key(val)<key(y)，（可能有重复值）
+        if(iterator(y)==begin())//如果恰巧y==left_most，那么val必然是新的最小值。这是因为若y有右子树，且val==最小值，那么
+                        //      y可以继续往y的后继走；若y没有右子树，且val==最小值，那么val==key（y）必然使com_res==false.
+            return pair<iterator,bool>(__insert(y,val),true);
+        else
+            --pre_y;//找到y的前驱,确定val是否以有重复值在树中
+    }
+    //如果val和pre_y的key值相同,则有重复值--->返回false。如果不重复,则必然是返回true
+    //important:这一段代码并不是<STL源码剖析>中所说的插入右侧,而是判断是否存在和val相同的值,无则插入,插入点可左可右
+    //如果val!=pre_y必然有pre_y<val:因为pre_y是y的前驱,因此pre_y<y,而由于y处在pre_y的右子树,val是y的孩子,因此pre_y<val
+    return key_compare(KeyOfValue()(key(pre_y.node)),KeyOfValue()(val))?
+            pair<iterator,bool>(__insert(y,val),true)://未发现重复
+            pair<iterator,bool>(pre_y,false);//发现重复
+    
+    //总结:关键在于如何判断是否有重复值,如果有重复值,那么插入点的父节点y的前驱必然==val。
+    //      但是如果插入的新值val小于最小值，那么此时y的前驱就是其本身（参考decrement（）函数）
 }
 
 
