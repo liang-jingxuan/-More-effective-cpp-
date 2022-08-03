@@ -313,8 +313,10 @@ class RBT{
         bool    empty(){return node_count==0;}
         size_type max_size()const{return size_type(-1);}
         void clear(){}
+        iterator find(const Key&k);//find的时候是key
+        bool erase(iterator&);//删除iterator所指向的节点,既然是iterator,那必然是树中的某一节点
     public:
-        pair<iterator,bool> insert_unique(const value_type& x);
+        pair<iterator,bool> insert_unique(const value_type& x);//插入的时候是value_type
         iterator insert_equal(const value_type& x);
         
 };
@@ -363,7 +365,9 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
                         //      y可以继续往y的后继走；若y没有右子树，且val==最小值，那么val==key（y）必然使com_res==false.
             return pair<iterator,bool>(__insert(y,val),true);
         else
-            --pre_y;//找到y的前驱,确定val是否以有重复值在树中
+            --pre_y;//找到y的前驱,确定val是否以有重复值在树中。
+                    //如果val小于最小值，那么pre_y指向left_most,并且--pre_y仍是它本身
+                    //如果val等于最小值,在后续的判断重复中就会得到false而返回插入失败
     }
     //如果val和pre_y的key值相同,则有重复值--->返回false。如果不重复,则必然是返回true
     //important:这一段代码并不是<STL源码剖析>中所说的插入右侧,而是判断是否存在和val相同的值,无则插入,插入点可左可右
@@ -375,7 +379,29 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::insert_unique(const value_type& val){
     //总结:关键在于如何判断是否有重复值,如果有重复值,那么插入点的父节点y的前驱必然==val。
     //      但是如果插入的新值val小于最小值，那么此时y的前驱就是其本身（参考decrement（）函数）
 }
-
+template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
+typename RBT<Key,Value,KeyOfValue,compare,Alloc>::iterator
+RBT<Key,Value,KeyOfValue,compare,Alloc>::find(const Key& val){//若有重复值，则优先返回接近根节点的一个
+    link_type y=header;
+    link_type x=root();//探路节点
+    while(x!=nullptr){
+        if(!key_compare(key(x),val))//x>=val则往左走,注意key_compare函数在arg1==arg2时返回false,因此在这种情况下
+                                    //可能存在x==val,所以只有这种情况下y=x
+            y=x,x=left(x);
+        else//x<val则往右走,注意这里没有令y=x
+            x=right(x);
+    }
+    iterator ans=iterator(y);
+    return (ans==end()||key_compare(val,key(ans.node)))?end():ans;
+    //important:这段代码妙极了!
+    //原理:在key_compare(arg1,arg2)函数中,当arg1<arg2的时候返回true,在arg1>=arg2的时候返回false。
+    //具体流程：
+    //1.当所寻的val值不存于在于树中:y最终到达某一个节点，该节点必然满足y>val(因为只有arg1>=arg2时,y才移动,又由于
+    //  val值不在树中,因此必然是y>val),因此在最终的key_compare(val,y)=true,所以返回了end(),符合预期
+    //2.当所寻的val值在存在于树中:当y经过 y==val值的节点时停下(因为y>=val时,y会移动并停留),此时y的左子树都小于val
+    //  y的右子树都>=val,因此x会先向左走一次,然后一直向右走,因为x所遍历的数必然都<val，而由于x一直向右走
+    //  因此y一直停留在原地。最终由于val==y所以key_compare(val,y)返回false,false||false==false,返回ans,符合预期。
+}
 
 template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
 typename RBT<Key,Value,KeyOfValue,compare,Alloc>::iterator
@@ -415,6 +441,44 @@ RBT<Key,Value,KeyOfValue,compare,Alloc>::__insert(base_ptr __y,const Value& val)
     __rbt_insert_rebalance(z,header->parent);//插入的重平衡主要解决的是双红
     ++node_count;
     return iterator(z);
+}
+
+template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
+bool RBT<Key,Value,KeyOfValue,compare,Alloc>::erase(iterator &iter){
+    if(link_type(iter.node)==end()||iter.node==nullptr) return false;
+    //iter已经指向了要删除的节点,不用自己寻找该节点在哪个位置
+    //思路:分三种情况：1.iter是叶，2.iter是非叶
+    iterator it_prev=iter,it_next=iter;
+    --it_prev;++it_next;
+    //1.iter是叶，且是iter是红色的
+    if(iter.node->left==nullptr&&iter.node->left==nullptr){//iter是叶
+        iterator iter_par=iter.node->parent;
+        if(link_type(iter.node)==right_most()){
+            header->right=iter.node->parent;
+            iter.node->parent->right=nullptr;
+        }else if(link_type(iter.node)==left_most()){
+            header->left=iter.node->parent;
+            iter.node->parent->left=nullptr;
+        }else{//不是最值，只是一个普通的叶节点
+            if(iter.node->parent->right==iter.node){//该叶是右叶
+                iter.node->parent->right=nullptr;
+            }else{//该叶是左叶
+                iter.node->parent->left=nullptr;
+            }
+        }
+        iter.node->parent=nullptr;
+        if(iter.node->color==__rbtree_node_black)
+            __erase_rebalence(iter_par.node);
+        destroy_and_dealloc_node(iter.node);
+    }
+
+
+
+}
+
+template<class Key,class Value,class KeyOfValue,class compare,class Alloc>
+void RBT<Key,Value,KeyOfValue,compare,Alloc>::__erase(link_type iter){
+
 }
 
 //x是新插入的节点
