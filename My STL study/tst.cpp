@@ -243,12 +243,9 @@ int Mydequetest(){
 void Myrbttest(){
     mySTL::RBT<int,int,identity<int>,less<int>> itree;//less <返回true,>=返回false
                                             //identity是如何根据value值求key
-    itree.insert_equal(1);
-    itree.insert_equal(2);
-    itree.insert_equal(3);
-    itree.insert_equal(4);
-    itree.insert_unique(5);
-    itree.insert_unique(6);
+    for(int ix=0;ix<8;ix++)
+        itree.insert_equal(ix+1);
+
     for(mySTL::RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
             pdq!=itree.end();++pdq)
         std::cout<<*pdq<<',';

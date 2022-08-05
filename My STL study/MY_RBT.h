@@ -116,7 +116,7 @@ namespace mySTL
         }
 
         void decrement()
-        {   //前驱
+        { //前驱
             // 1.考虑node是header,说明指向了end(),则前驱即最大的数,header->right即最大的数
             if (node->color == __rbtree_node_red && node->parent->parent == node)
             {
@@ -544,8 +544,8 @@ namespace mySTL
             __rbt_erase_root();
         else if (iter.node->left == nullptr && iter.node->right == nullptr)
             __rbt_erase_leaf((link_type)iter.node); // pass
-         else
-        __rbt_erase_aux((link_type)iter.node);
+        else
+            __rbt_erase_aux((link_type)iter.node);
         return true;
     }
 
@@ -566,11 +566,13 @@ namespace mySTL
         else if (old_root->left == nullptr || old_root->right == nullptr)
         { //情况2,3:根有单孩子,则这个单孩子必然是红色的
             link_type new_root;
-            if (old_root->left != nullptr){
+            if (old_root->left != nullptr)
+            {
                 new_root = (link_type)old_root->left;
                 new_root = (link_type)old_root->left;
             }
-            else if (old_root->right != nullptr){
+            else if (old_root->right != nullptr)
+            {
                 new_root = (link_type)old_root->right;
                 new_root = (link_type)old_root->right;
             }
@@ -582,25 +584,26 @@ namespace mySTL
             destroy_and_dealloc_node(old_root);
             //不需要rebalance
         }
-        else//情况4:根有双孩子
-        {   
+        else //情况4:根有双孩子
+        {
             // 必然有后继
-            iterator tmp_root = root(); ++tmp_root; 
-            link_type new_root = (link_type)tmp_root.node;// new_next即root的后继
-            if (new_root->right != nullptr)// 4.1、后继有右孩子
-            { 
+            iterator tmp_root = root();
+            ++tmp_root;
+            link_type new_root = (link_type)tmp_root.node; // new_next即root的后继
+            if (new_root->right != nullptr)                // 4.1、后继有右孩子
+            {
                 // 1.root后继有孩子,则后继必然是黑色的；后继孩子必然是红色的,不可能是黑。
                 //处理方法：用后继的红色孩子替代后继，用后继替代root.
                 //后继的孩子必然是红色的原因是：后继节点y的左黑高度是1或2,
                 //如果左黑高度为1，说明后继是红色的，加上nullptr后就是0+1=1，则右孩子只能是红色
                 //如果左黑高度为2，说明后继是黑色的，加上nullptr后就是1+1=2，则右孩子只能是红色
                 //且右孩子是红色节点的时候必然是叶节点。
-                link_type replace_node = (link_type)new_root->right;//后继的后继
+                link_type replace_node = (link_type)new_root->right; //后继的后继
                 header->parent = new_root;
                 // replace_node继承new_root的位置
                 replace_node->parent = new_root->parent;
                 new_root->parent->left = replace_node;
-                replace_node->color = __rbtree_node_black;//因为这个节点原本必然是红的
+                replace_node->color = __rbtree_node_black; //因为这个节点原本必然是红的
                 // new_root继承原本的根节点所有信息
                 new_root->left = old_root->left;
                 old_root->left->parent = new_root;
@@ -610,9 +613,10 @@ namespace mySTL
                 new_root->color = __rbtree_node_black; //根节点必须是黑色的
                 destroy_and_dealloc_node(old_root);
             }
-            else// 4.2.后继无孩子
-            {   
-                if(new_root==right_most()){
+            else // 4.2.后继无孩子
+            {
+                if (new_root == right_most())
+                {
                     header->right = new_root;
                 }
                 //交换new_root和old_root
@@ -627,14 +631,21 @@ namespace mySTL
 
                 old_root->left = nullptr;
                 old_root->right = nullptr;
-                new_root->parent=header;
+                new_root->parent = header;
 
                 old_root->color = new_root->color;
                 new_root->color = __rbtree_node_black;
-                if(old_root->color==__rbtree_node_red){
+                if (old_root->color == __rbtree_node_red)
+                {
                     destroy_and_dealloc_node(old_root);
-                }else{
+                }
+                else
+                {
                     __rbt_erase_rebalance(old_root, header->parent);
+                    if (old_root->parent->left == old_root)
+                        old_root->parent->left = nullptr;
+                    else
+                        old_root->parent->right = nullptr;
                     destroy_and_dealloc_node(old_root);
                 }
             }
@@ -661,6 +672,10 @@ namespace mySTL
         else
         { //叶节点是黑色的
             __rbt_erase_rebalance(erase_node, header->parent);
+            if (erase_node->parent->left == erase_node)
+                erase_node->parent->left = nullptr;
+            else
+                erase_node->parent->right = nullptr;
             destroy_and_dealloc_node(erase_node);
         }
     }
@@ -677,8 +692,8 @@ namespace mySTL
          *nill  nill
          *   情况1                         情况2[不可能,因为erase_node是叶节点]
          */
-        if (erase_node->right == nullptr)//1.要删的节点没有后继
-        { //情况1,左孩子替代erase_node,不需要Rebalance,删除即可
+        if (erase_node->right == nullptr) // 1.要删的节点没有后继
+        {                                 //情况1,左孩子替代erase_node,不需要Rebalance,删除即可
             link_type replace_node = (link_type)erase_node->left;
             replace_node->parent = erase_node->parent;
             erase_node->parent->left = replace_node;
@@ -687,7 +702,7 @@ namespace mySTL
             replace_node->right = nullptr;
             destroy_and_dealloc_node(erase_node);
         }
-        else//2.要删的节点有后继
+        else // 2.要删的节点有后继
         {
             /*
              *找到erase_node的后继
@@ -707,10 +722,10 @@ namespace mySTL
 
             iterator erase_next = iterator(erase_node);
             ++erase_next;
-            if (erase_node->right == nullptr)//后继无孩子,那么该后继是个叶节点
+            if (erase_node->right == nullptr) //后继无孩子,那么该后继是个叶节点
             {
                 //情况1&3:用后继erase_next替代erase_node
-                __rbt_color_type tmp_color=erase_next.node->color;
+                __rbt_color_type tmp_color = erase_next.node->color;
                 erase_next.node->parent->left = erase_node;
                 erase_next.node->parent = erase_node->parent;
                 if (erase_node->parent->left == erase_node)
@@ -722,23 +737,30 @@ namespace mySTL
                 erase_node->right->parent = erase_next.node;
                 erase_next.node->color = erase_node->color;
                 erase_node->color = tmp_color;
-                if(erase_node->color == __rbtree_node_red){//后继是红:不需要rebalance,后继是黑:需要rebalance
+                if (erase_node->color == __rbtree_node_red)
+                { //后继是红:不需要rebalance,后继是黑:需要rebalance
                     erase_node->parent->left = nullptr;
                     destroy_and_dealloc_node(erase_node);
-                }else{
+                }
+                else
+                {
                     __rbt_erase_rebalance(erase_node, header->parent);
+                    if (erase_node->parent->left == erase_node)
+                        erase_node->parent->left = nullptr;
+                    else
+                        erase_node->parent->right = nullptr;
                     destroy_and_dealloc_node(erase_node);
                 }
             }
             else if (erase_next.node->right != nullptr)
-            {   //后继有孩子,则后继的孩子必然是红色的,替代掉后继即可
+            { //后继有孩子,则后继的孩子必然是红色的,替代掉后继即可
                 //情况2:用erase_next的右孩子替代erase_next,用后继erase_next它替代erase_node
                 // 2.1/erase_next_next和erase_next交换位置
                 link_type erase_next_next = (link_type)erase_next.node->right; //
                 //剥离erase_next+将erase_next_next接到erase_next位置
-                erase_next_next->parent = (link_type)erase_next.node->parent;  //父
-                erase_next_next->color = __rbtree_node_black;       //颜
-                erase_next.node->parent->left = erase_next_next;    //左
+                erase_next_next->parent = (link_type)erase_next.node->parent; //父
+                erase_next_next->color = __rbtree_node_black;                 //颜
+                erase_next.node->parent->left = erase_next_next;              //左
                 //不要右,因为可以断言该节点必然没有孩子
                 // 2.2/erase_next替代erase_node
                 erase_next.node->parent = erase_node->parent; //父
@@ -746,7 +768,7 @@ namespace mySTL
                     erase_node->parent->left = erase_next.node; //回马枪
                 else if (erase_node->parent->right == erase_node)
                     erase_node->parent->right = erase_next.node;
-                erase_next.node->color = erase_node->color;      //颜
+                erase_next.node->color = erase_node->color; //颜
                 erase_next.node->left = erase_node->left;   //左
                 erase_node->left->parent = erase_next.node;
                 erase_next.node->right = erase_node->right; //右
@@ -759,7 +781,6 @@ namespace mySTL
     template <class Key, class Value, class KeyOfValue, class compare, class Alloc>
     void RBT<Key, Value, KeyOfValue, compare, Alloc>::__erase(link_type iter)
     {
-
     }
 
     // x是新插入的节点
@@ -890,10 +911,167 @@ namespace mySTL
         //代码段3必须放在最后,否则就失去了原来的根的信息
     }
 
-    void __rbt_erase_rebalance(__rbt_node_base *erase_node, __rbt_node_base *&root)
+    void inline color_swap(__rbt_node_base *&node1, __rbt_node_base *&node2)
     {
+        __rbt_color_type tmp = node1->color;
+        node1->color = node2->color;
+        node2->color = tmp;
+    }
+
+    inline bool isRed(const __rbt_node_base *node)
+    {
+        return node->color == __rbtree_node_red;
+    }
+
+    inline bool isBlack(const __rbt_node_base *node)
+    {
+        return node->color == __rbtree_node_black;
+    }
+
+    inline bool isLeftChild(const __rbt_node_base *node)
+    {
+        if (node->parent->parent == node)
+            return false; //是根或是header
+        if (node->parent->left == node)
+            return true;
+        return false;
+    }
+
+    inline bool isRightChild(const __rbt_node_base *node)
+    {
+        if (node->parent->parent == node)
+            return false; //是根或是header
+        if (node->parent->right == node)
+            return true;
+        return false;
+    }
+
+    inline bool hasRedNephew(const __rbt_node_base *node)
+    {
+        //有侄子
+        //可能的bug:这里隐含的假设了,如果存在侄子,则侄子必然是红色的
+        if (node->parent->parent == node)
+            return false; //根或header
+        if (isLeftChild(node))
+        {
+            if (node->parent->right == nullptr)
+                return false;
+            else
+            { //有兄弟节点,但无侄子
+                if (node->parent->right->right == nullptr && node->parent->right->left == nullptr)
+                    return false; //没有侄子
+            }
+        }
+        else if (isRightChild(node))
+        {
+            if (node->parent->left == nullptr)
+                return false;
+            else
+            { //有兄弟节点,但无侄子
+                if (node->parent->left->right == nullptr && node->parent->left->left == nullptr)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    void __rbt_erase_rebalance(__rbt_node_base *const erase_node, __rbt_node_base *&root)
+    { // important:__rbt_node_base * const erase_node不可被修改,因为这是要删除的节点
+        //      要避免因为变化导致删错了对象
+
+        __rbt_node_base *copy_erase_node = erase_node;
+
         //负责在调整后将arg1剥离出二叉树中
-        //4种情况:1.父节点是4节点,2.父节点是3节点,3.父节点是2节点
+        // 4种情况:1.父节点是4节点,2.父节点是3节点,3.父节点是2节点
+        //                                                                ---红:父兄交换颜色后 continue
+        //                                                               /
+        // 1.检查erase_node父节点是否为黑色的------是(父为黑): 兄弟节点颜色?: ---黑且兄弟节点无孩子:兄弟染红,
+        //  (对应3节点上,erase_node连在黑节点上)\                                D换对象为父节点后continue
+        //                                     ---否(父为红):判断条件2
+        //
+        //                                                    /---有:以父节点为旋转点进行旋转后,兄父颜色互换,远侄染黑return(出口)
+        // 2.检查erase_node的检查是否有侄子:---有:判断是否有远侄子---无:以近侄子为旋转点进行旋转,侄子及其父亲颜色互换continue
+        //                                |
+        //                                ---无:判断条件3
+        // 3.对应4节点退化为3节点,3节点退化为2节点:兄父颜色交换后return(出口)
+        while (copy_erase_node != root)
+        {
+            if (isBlack(copy_erase_node->parent))
+            {
+                if (isLeftChild(copy_erase_node))
+                {
+                    //要删的节点是左孩子
+                    if (isRed(copy_erase_node->parent->right))
+                    {
+                        //兄弟节点是红色的--->兄父交换颜色
+                        color_swap(copy_erase_node->parent, copy_erase_node->parent->right);
+                    }
+                    else if (copy_erase_node->parent->right->right == nullptr && copy_erase_node->parent->right->left == nullptr)
+                    {
+                        //兄弟节点是黑色的
+                        copy_erase_node->parent->right->color = __rbtree_node_red;
+                        copy_erase_node = copy_erase_node->parent;
+                    }
+                }
+                else if (isRightChild(copy_erase_node))
+                {
+                    //要删的节点是右孩子
+                    if (isRed(copy_erase_node->parent->left))
+                    {
+                        //兄弟节点是红色的
+                        color_swap(copy_erase_node->parent, copy_erase_node->parent->left);
+                    }
+                    else if (copy_erase_node->parent->left->right == nullptr && copy_erase_node->parent->left->left == nullptr)
+                    {
+                        //兄弟节点是黑色的,(父黑+兄黑)必然是二节点
+                        copy_erase_node->parent->left->color = __rbtree_node_red;
+                        copy_erase_node = copy_erase_node->parent;
+                    }
+                }
+            }
+            else if (hasRedNephew(copy_erase_node))
+            {
+                if (isLeftChild(copy_erase_node))
+                {
+                    if (copy_erase_node->parent->right->right != nullptr)
+                    {
+                        //有远侄子
+                        color_swap(copy_erase_node->parent->right, copy_erase_node->parent);
+                        __rbt_left_rotate(copy_erase_node->parent, root);
+                        return; //出口
+                    }
+                    else
+                    {
+                        //只有近侄子
+                        color_swap(copy_erase_node->parent->right, copy_erase_node->parent->right->left);
+                        __rbt_right_rotate(copy_erase_node->parent->right, root);
+                    }
+                }
+                else if (isRightChild(copy_erase_node))
+                {
+                    if (copy_erase_node->parent->left->left != nullptr)
+                    {
+                        //有远侄子
+                        color_swap(copy_erase_node->parent->left, copy_erase_node->parent);
+                        __rbt_right_rotate(copy_erase_node->parent, root);
+                        return;
+                    }
+                    else
+                    {
+                        //只有近侄子
+                        color_swap(copy_erase_node->parent->left, copy_erase_node->parent->left->right);
+                        __rbt_left_rotate(copy_erase_node->parent->left, root);
+                    }
+                }
+            }
+            else
+            {
+                //父红,兄无孩子(即无侄子)
+                copy_erase_node->parent->color = __rbtree_node_red;
+                return;
+            }
+        }
+        root->color = __rbtree_node_black;
     }
 
 } // namespace mySTL
