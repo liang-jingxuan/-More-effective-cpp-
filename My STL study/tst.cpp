@@ -4,7 +4,7 @@
 #include"Mydeque.hpp"
 #include"MY_RBT.h"
 using namespace mySTL;
-
+using std::cout;
 
 int Myvectortst(){
     //1.Myallocator 文件测试:OK
@@ -243,17 +243,39 @@ int Mydequetest(){
 void Myrbttest(){
     mySTL::RBT<int,int,identity<int>,less<int>> itree;//less <返回true,>=返回false
                                             //identity是如何根据value值求key
+    cout<<"1.insert_euqal test:"<<endl;    
+    cout<<"\n1.1. insert_equal function test:";
     for(int ix=0;ix<8;ix++)
         itree.insert_equal(ix+1);
-
-    for(mySTL::RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
-            pdq!=itree.end();++pdq)
-        std::cout<<*pdq<<',';
-    std::cout<<"\n erase test!:"<<endl;
-    itree.erase(++(++itree.begin()));
     for(mySTL::RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
         pdq!=itree.end();++pdq)
     std::cout<<*pdq<<',';
+
+    cout<<"\n1.2. insert_equal function test,insert 10 element '4':";
+    for(int ix=0;ix<10;ix++)
+        itree.insert_equal(4);
+    for(mySTL::RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
+        pdq!=itree.end();++pdq)
+        std::cout<<*pdq<<',';
+
+    cout<<"\n1.3. insert_unique function test,insert 10 element '4':";
+    for(int ix=0;ix<10;ix++)
+        itree.insert_unique(4);
+    for(mySTL::RBT<int,int,identity<int>,less<int>>::iterator pdq=itree.begin();
+        pdq!=itree.end();++pdq)
+        std::cout<<*pdq<<',';
+    itree.print();
+    //itree.print();
+    std::cout<<"\n2.erase test!:"<<endl;
+    int i=1;
+    while(itree.size()){
+        itree.erase(itree.begin());
+        cout<<"The "<<i<<"-th erase:"<<endl;
+        ++i;
+        itree.print();
+    }
+    itree.print();
+    cout<<"Is the tree empty now?"<<itree.empty()<<endl;
 }
 
 int main(){
