@@ -259,22 +259,22 @@ namespace mySTL
     {
         /*类型名重命名*/
     protected:
-        typedef void *void_pointer;
-        typedef __rbt_node_base *base_ptr; //没有数据成员的部分
-        typedef __rbt_node<Value> rbt_node;
-        typedef Mysimple_alloc<rbt_node, Alloc> node_allocator; //分配一个节点的空间配置器
-        typedef __rbt_color_type color_type;
+        typedef void*                               void_pointer;
+        typedef __rbt_node_base*                    base_ptr; //没有数据成员的部分
+        typedef __rbt_node<Value>                   rbt_node;
+        typedef Mysimple_alloc<rbt_node, Alloc>     node_allocator; //分配一个节点的空间配置器
+        typedef __rbt_color_type                    color_type;
 
     public:
-        typedef Key Key_type;
-        typedef Value value_type;
-        typedef value_type *pointer;
-        typedef const value_type *const_pointer;
-        typedef value_type &reference;
-        typedef const value_type &const_reference;
-        typedef rbt_node *link_type;
-        typedef size_t size_type;
-        typedef ptrdiff_t difference_type;
+        typedef Key                 Key_type;
+        typedef Value               value_type;
+        typedef value_type*         pointer;
+        typedef const value_type*   const_pointer;
+        typedef value_type&         reference;
+        typedef const value_type&   const_reference;
+        typedef rbt_node*           link_type;
+        typedef size_t              size_type;
+        typedef ptrdiff_t           difference_type;
 
         /*内存管理*/
     protected:
@@ -352,7 +352,7 @@ namespace mySTL
 
     public:
         typedef __rbt_iterator<value_type, reference, pointer> iterator;
-
+        typedef const iterator                                 const_iterator;
     private:
         iterator __insert(base_ptr y, const value_type &v);
         link_type __copy(link_type x, link_type y);
@@ -387,13 +387,16 @@ namespace mySTL
         void __rbt_erase_aux(link_type);
 
     public:
-        compare key_comp() { return key_compare; }
-        iterator begin() { return left_most(); }
-        iterator end() { return header; }
-        size_type size() { return node_count; }
+        compare key_comp() const{ return key_compare; }
+        iterator begin() const { return left_most(); }
+        iterator end() const{ return header; }
+        size_type size()const { return node_count; }
         bool empty() { return node_count == 0; }
         size_type max_size() const { return size_type(-1); }
-        void clear() {}
+        void clear() {
+            if(size()==0) return;
+            __clear((link_type)header->parent);
+        }
         iterator find(const Key &k); // find的时候是key
         bool erase(iterator);        //删除iterator所指向的节点,既然是iterator,那必然是树中的某一节点
         void print(){;
@@ -411,9 +414,70 @@ namespace mySTL
                 ++i;
             }
         }
+        
+        size_type erase(const Key_type &x){
+            size_type elem_del=0;
+            iterator p = find(x);
+            while(p!=end()){//只要仍然存在该元素就删除
+                erase(p);
+                p=find(x);
+                ++elem_del;
+            }
+            return elem_del;
+        }
+
+        size_type count(const Key_type& x) const{
+            //中序遍历,每找到一个就+1
+            size_type res=0;
+            __count((link_type)header->parent, x, res);
+            return res;
+        }
+
+        void erase(iterator first,iterator last){
+            while(first!=last){
+                erase(first);
+                ++first;
+            }
+        }
+
+
     public:
         pair<iterator, bool> insert_unique(const value_type &x); //插入的时候是value_type
         iterator insert_equal(const value_type &x);
+        pair<iterator, bool> insert_unique(pointer &first,pointer &last){
+            pair<iterator,bool> res;
+            while(first!=last){
+                res = insert_unique(*first);
+                if(res.second==false)
+                    break;
+                ++first;
+            }
+            return res;
+        }
+        
+        iterator insert_unique(pointer &position,const value_type &x){
+            pair<iterator,bool> p=insert_unique(x);
+            position=p.first;
+            return position;
+        }
+    protected:
+        void __clear(link_type cur){
+            if(cur==nullptr) return;
+            __clear((link_type)cur->left);
+            __clear((link_type)cur->right);
+            destroy_and_dealloc_node((link_type)cur);
+        }
+
+        void __count(link_type cur,const Key_type& x,size_type& res)const{
+            if(cur==nullptr) return;//中序遍历
+            __count((link_type)cur->left,x,res);
+            if(key_compare(key(cur),x));//说明cur<x
+            else if(key_compare(x,key(cur)));//如果是true说明x<cur
+            else ++res;//只剩下==
+            __count((link_type)cur->right,x,res);
+        }
+
+
     };
 
     //可以插入重复的值,但是需要保持平衡数关于值的大小关系
@@ -478,6 +542,7 @@ namespace mySTL
         //总结:关键在于如何判断是否有重复值,如果有重复值,那么插入点的父节点y的前驱必然==val。
         //      但是如果插入的新值val小于最小值，那么此时y的前驱就是其本身（参考decrement（）函数）
     }
+
     template <class Key, class Value, class KeyOfValue, class compare, class Alloc>
     typename RBT<Key, Value, KeyOfValue, compare, Alloc>::iterator
     RBT<Key, Value, KeyOfValue, compare, Alloc>::find(const Key &val)
@@ -673,8 +738,8 @@ namespace mySTL
                     
                 header->parent=new_root;
                 new_root->parent=header;
-                new_root->left=nullptr;
-                new_root->right=nullptr;
+                old_root->left=nullptr;
+                old_root->right=nullptr;
                 if (!need_rebalance)
                 {
                     destroy_and_dealloc_node(old_root);

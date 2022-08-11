@@ -3,6 +3,7 @@
 #include "Mylist.hpp"
 #include"Mydeque.hpp"
 #include"MY_RBT.h"
+#include"Myset.hpp"
 using namespace mySTL;
 using std::cout;
 
@@ -278,11 +279,32 @@ void Myrbttest(){
     cout<<"Is the tree empty now?"<<itree.empty()<<endl;
 }
 
+void Mysettest(){
+    int i;
+    int ia[5]={0,1,2,3,4};
+    mySet<int> iset(ia,ia+5);
+    cout<<"3 count="<< iset.count(3)<<endl;
+    iset.insert(3);
+    cout<<"size="<<iset.size()<<endl;
+    cout<<"3 count="<<iset.count(3)<<endl;
+    iset.insert(5);
+    cout<<"size="<<iset.size()<<endl;
+    cout<<"3 count=" <<iset.count(3)<<endl;
+    iset.erase(1);
+    cout<<"size="<<iset.size()<<endl;
+    cout<<"3 count="<<iset.count(3)<<endl;
+    cout<<"1 count="<<iset.count(1)<<endl;
+    iset.printset();
+    //mySet<int>::iterator p=iset.begin();
+    //*p=6;//set使用const iterator的原因,这样的操作会使得红黑树不满足二叉搜索树的性质
+}
+
 int main(){
     //Myvectortst();
     //Mylisttest();
     //Mydequetest();
-    Myrbttest();
+    //Myrbttest();
+    Mysettest();
     return 1;
 }
 
