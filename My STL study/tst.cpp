@@ -4,6 +4,7 @@
 #include"Mydeque.hpp"
 #include"MY_RBT.h"
 #include"Myset.hpp"
+#include"Mymap.hpp"
 using namespace mySTL;
 using std::cout;
 
@@ -233,7 +234,7 @@ int Mydequetest(){
 }
 
   template<typename _Tp>
-    struct identity
+    struct identity//用于给定实值的时候返回对应的键值
     {
       const _Tp&
       operator()(const _Tp& __x) const
@@ -280,7 +281,6 @@ void Myrbttest(){
 }
 
 void Mysettest(){
-    int i;
     int ia[5]={0,1,2,3,4};
     mySet<int> iset(ia,ia+5);
     cout<<"3 count="<< iset.count(3)<<endl;
@@ -299,12 +299,35 @@ void Mysettest(){
     //*p=6;//set使用const iterator的原因,这样的操作会使得红黑树不满足二叉搜索树的性质
 }
 
+void Mymaptest(){
+    Mymap<string,int> simap;
+    /*
+    simap[std::string("Liang")] =   1;
+    simap[std::string("Jing")]  =   2;
+    simap[std::string("Xuan")]  =   3;
+    simap[std::string("learn")] =   4;
+    simap.insert(pair<std::string,int>(std::string("code"),6));
+    */
+    //simap[std::string("STL")]   =   5;
+    simap[std::string("jjhou")] =   1;
+    simap[std::string("jerry")]  =   2;
+    simap[std::string("jason")]  =   3;
+    simap[std::string("jimmy")] =   4;
+    simap.insert(pair<std::string,int>(std::string("david"),5));
+    Mymap<string,int>::iterator p = simap.begin();//因为map底层是红黑树
+                                //红黑树的迭代器指向节点,节点存储的是pair
+    for(;p!=simap.end();++p){
+        cout<< (*p).first<<' '
+            << p->second<<endl;
+    }
+}
 int main(){
     //Myvectortst();
     //Mylisttest();
     //Mydequetest();
     //Myrbttest();
-    Mysettest();
+    //Mysettest();
+    Mymaptest();
     return 1;
 }
 

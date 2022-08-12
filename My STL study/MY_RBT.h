@@ -420,7 +420,7 @@ namespace mySTL
             iterator p = find(x);
             while(p!=end()){//只要仍然存在该元素就删除
                 erase(p);
-                p=find(x);
+                p = find(x);
                 ++elem_del;
             }
             return elem_del;
@@ -504,7 +504,7 @@ namespace mySTL
     //插入一个值，返回值中，iterator指向插入的节点;bool指示是否插入成功,如果有相同的值则为false,
     template <class Key, class Value, class KeyOfValue, class compare, class Alloc>
     pair<typename RBT<Key, Value, KeyOfValue, compare, Alloc>::iterator, bool>
-    RBT<Key, Value, KeyOfValue, compare, Alloc>::insert_unique(const value_type &val)
+    RBT<Key, Value, KeyOfValue, compare, Alloc>::insert_unique(const value_type &val)//对于map来说是一个pair
     {
         // important:要注意是否插入了一个重复的值，如果有重复的值，那么插入点的父节点的
         link_type y = header;
@@ -536,8 +536,9 @@ namespace mySTL
         //如果val和pre_y的key值相同,则有重复值--->返回false。如果不重复,则必然是返回true
         // important:这一段代码并不是<STL源码剖析>中所说的插入右侧,而是判断是否存在和val相同的值,无则插入,插入点可左可右
         //如果val!=pre_y必然有pre_y<val:因为pre_y是y的前驱,因此pre_y<y,而由于y处在pre_y的右子树,val是y的孩子,因此pre_y<val
-        return key_compare(KeyOfValue()(key(pre_y.node)), KeyOfValue()(val)) ? pair<iterator, bool>(__insert(y, val), true) : //未发现重复
-                   pair<iterator, bool>(pre_y, false);                                                                        //发现重复
+        return key_compare(KeyOfValue()(key(pre_y.node)), KeyOfValue()(val)) ? 
+                    pair<iterator, bool>(__insert(y, val), true) : //未发现重复
+                    pair<iterator, bool>(pre_y, false);                                                                        //发现重复
 
         //总结:关键在于如何判断是否有重复值,如果有重复值,那么插入点的父节点y的前驱必然==val。
         //      但是如果插入的新值val小于最小值，那么此时y的前驱就是其本身（参考decrement（）函数）
