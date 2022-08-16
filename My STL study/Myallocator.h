@@ -436,9 +436,6 @@ __uninitialized_copy_aux(InputIterator first , InputIterator last,
 
 //4.3 uninitialized_fill
 //作用:用val来填充[First,Last)
-
-
-
 template<class ForwardIterator, class T>
 inline void 
 __uninitialized_fill_aux(ForwardIterator first,

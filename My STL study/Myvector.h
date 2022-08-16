@@ -38,19 +38,20 @@ class Myvector{
 
         reference back()const;//√
         reference front()const;//√
-
+        void reserve(size_type);
         void push_back(const T& x);//√
 
         void pop_back();//√
 
-        void insert(iterator position,size_type n,T& x) ;//在position位置插入n个x
+        void insert(iterator position,size_type n,T& x);//在position位置插入n个x
+        void insert(iterator position,size_type n,T x);//在position位置插入n个x
 
         iterator erase(iterator position);//消除position上的元素,后面的补上//√
         iterator erase(iterator first,iterator last);//消除fist到last中间的元素,后面的补上
         void resize(size_type new_size,const T& x);//√
         void resize(size_type new_size);//√
         void clear();//√
-
+        void swap(Myvector<T,Alloc>&);
 
     public:
         //构造函数
@@ -132,6 +133,7 @@ void Myvector<T,Alloc>::pop_back(){
     --finish;
     destroy(finish);
 }
+
 template<class T,class Alloc>
 typename Myvector<T,Alloc>::iterator
 Myvector<T,Alloc>::erase(iterator position){
@@ -174,10 +176,10 @@ void Myvector<T,Alloc>::clear(){
 }
 
 template<class T,class Alloc>
-void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
+void Myvector<T,Alloc>::insert(iterator position,size_type n,T x){
     //在position位置上插入n个x
     //1.插入后仍然不需要扩充
-    if(capacity()>=n){
+    if(capacity() >= n){
         //分两种情况,因为要考虑覆盖的问题
         const size_type elems_after=finish-position;//要迁移的元素个数
                                                     //当elems_afer>n时,elems_after之后元素的有可能被覆盖
@@ -187,36 +189,36 @@ void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
         if(elems_after > n){//要迁移的元素个数大于新增的元素个数
              //1.1大于n的时候复制的话,前面的数据会覆盖后面的数据,导致后面的数据丢失,因此要从后往前复制
             uninitialized_copy(finish-n,finish,finish);//主要目的是在空间上构造对象
-            finish+=n;
+            finish += n;
             copy_backward(position,old_finish-n,finish);
             fill(position,position+n,x_copy);
         }
         else{
             //1.2小于等于n的时候进行迁移不必担心覆盖的问题;举例 :需要迁移elem_after=3个,新增n=5个
-            uninitialized_fill_n(finish,n-elems_after,x_copy);//开n-elems_after个槽用,使得刚好能放下新增的元素
+            uninitialized_fill_n(finish, n - elems_after, x_copy);//开n-elems_after个槽用,使得刚好能放下新增的元素
             //[* * * position(1) 2 3 old_finish(x)=finish(x) x] 
-            finish+=n-elems_after;//使finish指向正确位置;
+            finish += n - elems_after;//使finish指向正确位置;
             //[* * * position(1) 2 3 old_finish(x) x finish(nill)]  (*和1 2 3是旧元素,x是新增元素)
-            uninitialized_copy(position,old_finish+n,finish);//将旧的值进行搬移
+            uninitialized_copy(position, old_finish, finish);//将旧的值进行搬移
+            //**这里曾经有个bug:uninitialized_copy(position, old_finish + n, finish);
+            
             //[* * * psition(1),2,3,old_finish(x) x finish(1) 2,3]
-            finish+=elems_after;
+            finish += elems_after;
             //[* * * psition(1),2,3,old_finish(x) x 1 2,3 finish(nill)]
-            fill(position,old_finish,x_copy);
+            fill(position, old_finish, x_copy);
             //[* * * psition(x),x,x,old_finish(x) x 1 2,3 finish(nill)]
         }
-        
-        
     }
     else{
     //2.插入后需要扩充capacity()<=end_of_storage
-        const size_type old_size=size();
-        const size_type new_size=old_size+max(old_size,n);
+        const size_type old_size = size();
+        const size_type new_size = old_size + max(old_size,n);
         //这里没有进行2倍扩充,因为2倍扩充后可能能仍然无法放下新增的n个元素
-        iterator new_start=Alloc::allocate(new_size);
-        iterator new_finish=new_start;
-        new_finish=uinitialized_copy(start,position,new_start);// 插入点之前的元素搬移
-        new_finish=uinitialized_fill_n(new_finish,n,x);
-        new_finish=uinitialized_copy(position,finish,new_finish);
+        iterator new_start = data_allocator::allocate(new_size);
+        iterator new_finish = new_start;
+        new_finish=uninitialized_copy(start,position,new_start);// 插入点之前的元素搬移
+        new_finish=uninitialized_fill_n(new_finish,n,x);
+        new_finish=uninitialized_copy(position,finish,new_finish);
     //3.处理旧容器
         destroy(start,finish);
         deallocate();
@@ -224,6 +226,12 @@ void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
         finish=new_finish;
         end_of_storage=new_start+new_size;
     }
+}
+
+template<class T,class Alloc>
+void Myvector<T,Alloc>::insert(iterator position,size_type n,T& x){
+    T x_copy;
+    insert(position,n,x_copy);
 }
 //************************************protected内容:不对用户开放的,但可能被public函数调用实现某些功能的函数
 template<class T, class Alloc>
@@ -281,13 +289,49 @@ Myvector<T,Alloc>::allocate_and_fill(size_type n,const T& x) {
 
 template<class T, class Alloc>
 void Myvector<T,Alloc>::fill_initialize(size_type n,const T& val){
-    start=allocate_and_fill(n,val);
-    finish=start + n;
-    end_of_storage=finish;
+    start = allocate_and_fill(n,val);
+    finish = start + n;
+    end_of_storage = finish;
 }
 
-void fun(){
-    cout<<"Hello word!"<<endl;
+template<class T, class Alloc>
+void Myvector<T,Alloc>::reserve(size_type n){//开辟能存储n个对象的空间
+    if(capacity()>=n) return;
+    iterator old_start=start,old_finish=finish;
+    size_type num_to_dealloc = capacity();
+    iterator result = data_allocator::allocate(n);
+    if(empty()){
+        uninitialized_fill_n(result,n,T(0));//初始值为0?不知道
+        start = result;//左闭
+        finish = start;//右开
+        end_of_storage = start + n;
+    }
+    else{
+        finish = uninitialized_copy(start,finish,result);
+        start = result;
+        end_of_storage = start + n;
+    }
+    destroy(old_start,old_finish);
+    data_allocator::deallocate(old_start,num_to_dealloc);
 }
+
+template<class T, class Alloc>
+void Myvector<T,Alloc>::swap(Myvector<T,Alloc>& x){
+    //对调两个vector,释放x
+    iterator tmp_iter = x.start;
+    x.start = start;
+    start = tmp_iter;
+    tmp_iter = x.finish;
+    x.finish = finish;
+    finish = tmp_iter;
+    tmp_iter = x.end_of_storage;
+    x.end_of_storage = end_of_storage;
+    end_of_storage = tmp_iter;
+    //释放参数列表中的内容
+    destroy(x.start,x.finish);
+    data_allocator::deallocate(x.start,x.capacity());
+}
+
+
 }//namespace mySTL
 #endif

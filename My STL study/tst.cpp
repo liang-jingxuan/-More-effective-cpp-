@@ -5,6 +5,7 @@
 #include"MY_RBT.h"
 #include"Myset.hpp"
 #include"Mymap.hpp"
+#include"Myhash.hpp"
 using namespace mySTL;
 using std::cout;
 
@@ -321,13 +322,35 @@ void Mymaptest(){
             << p->second<<endl;
     }
 }
+
+
+
+void Myhashtable(){
+    hashtable<int,int,hash<int>,identity<int>,equal_to<int>> hs(3,hash<int>(),equal_to<int>());
+    cout<<hs.size()<<endl;
+    cout<<hs.bucket_count()<<endl;
+    cout<<hs.max_bucket_cound()<<endl;
+
+    hs.insert_unique(59);    
+    hs.insert_unique(63);    
+    hs.insert_unique(108);    
+    hs.insert_unique(2);    
+    hs.insert_unique(53);    
+    hs.insert_unique(55);
+
+    cout<<hs.size()<<endl;
+
+}
+
 int main(){
     //Myvectortst();
     //Mylisttest();
     //Mydequetest();
     //Myrbttest();
     //Mysettest();
-    Mymaptest();
+    //Mymaptest();
+
+    Myhashtable();
     return 1;
 }
 
