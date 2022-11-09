@@ -1,0 +1,5 @@
+clnt2:nihao!
+clnt2:woshiljx.
+clnt1:nihao
+clnt1:nihaoya
+clnt2:nihaoya
